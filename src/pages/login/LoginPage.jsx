@@ -59,7 +59,7 @@ export default function LoginPage() {
           />
 
           <h1 className="login-title">
-            Token Volt Management System
+            Token Vault Management System
           </h1>
 
           <h2 className="login-subtitle">
