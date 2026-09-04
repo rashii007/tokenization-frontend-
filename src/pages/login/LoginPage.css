@@ -4,134 +4,209 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
+
   padding: 40px 24px;
-  background: #0b0f19;
-  color: #f8fafc;
+
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+
+  transition:
+    background-color 0.25s ease,
+    color 0.25s ease;
 }
+
+/* =========================================================
+HEADER
+========================================================= */
 
 .login-header {
   width: 100%;
   max-width: 520px;
+
   text-align: center;
 }
 
 .login-logo {
   display: block;
   margin: 0 auto;
-  width: 150px;
+  width: 220px;
+  height: 150px;
+  object-fit: contain;
+
+  /* Light mode */
+  filter: brightness(0);
 }
+
+/* Dark mode */
+.dark .login-logo {
+  filter: brightness(0) invert(1);
+}
+
+
 
 .login-title {
   margin: 0;
-  color: #f8fafc;
+
+  color: hsl(var(--foreground));
+
   font-family: "Inter", sans-serif;
+
   font-size: 32px;
   font-weight: 700;
+
   line-height: 1.2;
 }
 
 .login-subtitle {
   margin: 12px 0 0;
-  color: #94a3b8;
+
+  color: hsl(var(--muted-foreground));
+
   font-family: "Inter", sans-serif;
+
   font-size: 14px;
   font-weight: 400;
+
   line-height: 1.5;
 }
 
-/* FORM */
+/* =========================================================
+FORM
+========================================================= */
 
 .login-form {
   width: 100%;
   max-width: 520px;
 
   margin-top: 32px;
-
   padding: 32px;
 
   display: grid;
+
   gap: 20px;
 
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid hsl(var(--border));
+
   border-radius: 20px;
 
-  background: rgba(30, 41, 59, 0.45);
+  background: hsl(var(--card));
 
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  color: hsl(var(--foreground));
 
-  backdrop-filter: blur(12px);
+  box-shadow: 0 10px 30px hsl(var(--foreground) / 0.08);
+
+  transition:
+    background-color 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-/* INPUT */
+/* =========================================================
+INPUT FIELD
+========================================================= */
 
 .login-field {
   width: 100%;
 }
 
+/* =========================================================
+INPUT
+========================================================= */
+
 .login-input.p-inputtext,
 .login-password-input.p-inputtext {
   width: 100%;
+
   height: 52px;
 
   border-radius: 12px;
 
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid hsl(var(--border));
 
   padding: 0 16px;
 
-  background: rgba(0, 0, 0, 0.2);
+  background: hsl(var(--background));
 
-  color: #f8fafc;
+  color: hsl(var(--foreground));
 
   font-family: "Inter", sans-serif;
+
   font-size: 15px;
 
   outline: none;
 
+  box-shadow: none;
+
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
-    background 0.2s ease;
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
+
+/* =========================================================
+PLACEHOLDER
+========================================================= */
 
 .login-input.p-inputtext::placeholder,
 .login-password-input.p-inputtext::placeholder {
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
+
+  opacity: 1;
 }
+
+/* =========================================================
+INPUT HOVER
+========================================================= */
+
+.login-input.p-inputtext:hover,
+.login-password-input.p-inputtext:hover {
+  border-color: hsl(var(--primary));
+}
+
+/* =========================================================
+INPUT FOCUS
+========================================================= */
 
 .login-input.p-inputtext:focus,
 .login-password-input.p-inputtext:focus {
-  border-color: rgba(34, 211, 238, 0.6);
+  border-color: hsl(var(--primary));
 
-  background: rgba(0, 0, 0, 0.3);
+  background: hsl(var(--background));
 
-  box-shadow: 0 0 0 3px rgba(34, 211, 238, 0.08);
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
 }
 
-/* BUTTON */
+/* =========================================================
+BUTTON
+========================================================= */
 
 .login-button.p-button {
   width: 100%;
+
   height: 52px;
 
   margin-top: 8px;
 
   border-radius: 12px;
 
-  border: none;
+  border: 1px solid hsl(var(--primary));
 
-  background: linear-gradient(90deg, #06b6d4 0%, #0891b2 100%);
+  background: hsl(var(--primary));
 
-  color: #ffffff;
+  color: hsl(var(--primary-foreground));
 
   justify-content: center;
+
   text-align: center;
 
   font-family: "Inter", sans-serif;
+
   font-size: 15px;
+
   font-weight: 600;
 
-  box-shadow: 0 8px 20px rgba(6, 182, 212, 0.18);
+  box-shadow: 0 8px 20px hsl(var(--primary) / 0.18);
 
   transition:
     transform 0.2s ease,
@@ -139,22 +214,49 @@
     opacity 0.2s ease;
 }
 
+/* =========================================================
+BUTTON HOVER
+========================================================= */
+
 .login-button.p-button:hover {
   transform: translateY(-1px);
 
-  box-shadow: 0 10px 25px rgba(6, 182, 212, 0.28);
+  background: hsl(var(--primary));
+
+  color: hsl(var(--primary-foreground));
+
+  box-shadow: 0 10px 25px hsl(var(--primary) / 0.28);
 }
+
+/* =========================================================
+BUTTON ACTIVE
+========================================================= */
 
 .login-button.p-button:active {
   transform: translateY(0);
 }
 
+/* =========================================================
+BUTTON FOCUS
+========================================================= */
+
+.login-button.p-button:focus {
+  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+}
+
+/* =========================================================
+BUTTON DISABLED
+========================================================= */
+
 .login-button.p-button:disabled {
   opacity: 0.6;
+
   cursor: not-allowed;
 }
 
-/* Remove old arrow styling */
+/* =========================================================
+REMOVE OLD ICON / ARROW
+========================================================= */
 
 .login-button .p-button-icon-right {
   display: none;
@@ -164,13 +266,46 @@
   display: none;
 }
 
-/* INPUT ICON */
+/* =========================================================
+INPUT ICON
+========================================================= */
 
 .p-input-icon-left > i {
-  color: #64748b;
+  color: hsl(var(--muted-foreground));
 }
 
-/* MOBILE */
+/* =========================================================
+DARK MODE
+========================================================= */
+
+.dark .login-shell {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+}
+
+.dark .login-form {
+  background: hsl(var(--card));
+  border-color: hsl(var(--border));
+
+  box-shadow: 0 10px 30px hsl(0 0% 0% / 0.35);
+}
+
+.dark .login-input.p-inputtext,
+.dark .login-password-input.p-inputtext {
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+
+  border-color: hsl(var(--border));
+}
+
+.dark .login-input.p-inputtext::placeholder,
+.dark .login-password-input.p-inputtext::placeholder {
+  color: hsl(var(--muted-foreground));
+}
+
+/* =========================================================
+MOBILE
+========================================================= */
 
 @media (max-width: 600px) {
   .login-shell {
@@ -183,17 +318,20 @@
 
   .login-form {
     padding: 24px 20px;
+
     margin-top: 24px;
   }
 
   .login-input.p-inputtext,
   .login-password-input.p-inputtext {
     height: 50px;
+
     font-size: 14px;
   }
 
   .login-button.p-button {
     height: 50px;
+
     font-size: 14px;
   }
 }

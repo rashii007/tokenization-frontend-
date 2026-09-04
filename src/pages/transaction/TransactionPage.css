@@ -1,0 +1,292 @@
+/* =========================================================
+   DATA TABLE
+========================================================= */
+
+.theme-datatable .p-datatable-table {
+  background: transparent !important;
+}
+
+.theme-datatable .p-datatable-thead > tr > th {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--muted-foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.theme-datatable .p-datatable-tbody > tr {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.theme-datatable .p-datatable-tbody > tr > td {
+  background: transparent !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+  padding: 0.75rem 1rem !important;
+  font-size: 0.875rem !important;
+}
+
+.theme-datatable .p-datatable-tbody > tr:nth-child(even) {
+  background: hsl(var(--muted) / 0.35) !important;
+}
+
+.theme-datatable .p-datatable-tbody > tr:hover {
+  background: rgba(34, 211, 238, 0.08) !important;
+}
+
+/* PAGINATOR */
+
+.theme-datatable .p-paginator {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.theme-datatable .p-paginator .p-paginator-page,
+.theme-datatable .p-paginator .p-paginator-first,
+.theme-datatable .p-paginator .p-paginator-prev,
+.theme-datatable .p-paginator .p-paginator-next,
+.theme-datatable .p-paginator .p-paginator-last {
+  color: hsl(var(--foreground)) !important;
+  background: transparent !important;
+}
+
+.theme-datatable .p-paginator .p-paginator-element:hover {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.theme-datatable .p-paginator .p-paginator-page.p-highlight {
+  background: rgba(34, 211, 238, 0.15) !important;
+  color: #0891b2 !important;
+}
+
+html.dark .theme-datatable .p-paginator .p-paginator-page.p-highlight {
+  color: #67e8f9 !important;
+}
+
+/* PAGINATOR ROWS DROPDOWN */
+
+.theme-datatable .p-paginator .p-dropdown {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.theme-datatable .p-paginator .p-dropdown-label {
+  color: hsl(var(--foreground)) !important;
+  background: transparent !important;
+}
+
+.theme-datatable .p-paginator .p-dropdown-trigger {
+  color: hsl(var(--muted-foreground)) !important;
+  background: transparent !important;
+}
+
+/* DROPDOWN */
+
+.theme-dropdown.p-dropdown {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+.theme-dropdown .p-dropdown-label {
+  color: hsl(var(--foreground)) !important;
+  background: transparent !important;
+}
+
+.theme-dropdown .p-dropdown-trigger {
+  color: hsl(var(--muted-foreground)) !important;
+  background: transparent !important;
+}
+
+/* DROPDOWN POPUP */
+
+.p-dropdown-panel {
+  background: hsl(var(--card)) !important;
+  color: hsl(var(--foreground)) !important;
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 10px !important;
+}
+
+.p-dropdown-panel .p-dropdown-items {
+  background: hsl(var(--card)) !important;
+  padding: 4px !important;
+}
+
+.p-dropdown-panel .p-dropdown-item {
+  color: hsl(var(--foreground)) !important;
+  background: transparent !important;
+  border-radius: 6px !important;
+}
+
+.p-dropdown-panel .p-dropdown-item:hover {
+  background: hsl(var(--muted)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+
+.p-dropdown-panel .p-dropdown-item.p-highlight {
+  background: hsl(var(--primary) / 0.12) !important;
+  color: hsl(var(--primary)) !important;
+}
+
+/* EMPTY MESSAGE */
+
+.theme-datatable .p-datatable-emptymessage > tr > td {
+  background: transparent !important;
+  color: hsl(var(--muted-foreground)) !important;
+  border-color: hsl(var(--border)) !important;
+}
+
+/* TABLE SCROLLBAR */
+
+.theme-datatable .p-datatable-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.4) hsl(var(--muted) / 0.3);
+}
+
+.theme-datatable .p-datatable-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.theme-datatable .p-datatable-wrapper::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.3);
+  border-radius: 999px;
+}
+
+.theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+
+.theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* DROPDOWN SCROLLBAR */
+
+.p-dropdown-panel .p-dropdown-items-wrapper {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.4) hsl(var(--muted) / 0.3);
+}
+
+.p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar {
+  width: 8px;
+}
+
+.p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-track {
+  background: hsl(var(--muted) / 0.3);
+}
+
+.p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb {
+  background: hsl(var(--border));
+  border-radius: 999px;
+}
+
+.p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* TABLE ACTION BUTTONS */
+
+.table-action-btn {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  border: 1px solid hsl(var(--border));
+  border-radius: 8px;
+  background: hsl(var(--card));
+  color: hsl(var(--muted-foreground));
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-action-btn.edit {
+  color: #0284c7;
+}
+
+.table-action-btn.edit:hover {
+  background: rgba(14, 165, 233, 0.12);
+  border-color: rgba(14, 165, 233, 0.45);
+  color: #0369a1;
+  transform: translateY(-1px);
+}
+
+.table-action-btn.delete {
+  color: #ef4444;
+}
+
+.table-action-btn.delete:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.45);
+  color: #dc2626;
+  transform: translateY(-1px);
+}
+
+/* STATUS BUTTON */
+
+.table-status-btn {
+  padding: 0.42rem 0.85rem;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.table-status-btn.deactivate {
+  color: #d97706;
+  background: rgba(245, 158, 11, 0.08);
+  border-color: rgba(245, 158, 11, 0.25);
+}
+
+.table-status-btn.deactivate:hover {
+  color: #b45309;
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.5);
+  transform: translateY(-1px);
+}
+
+.table-status-btn.activate {
+  color: #16a34a;
+  background: rgba(34, 197, 94, 0.08);
+  border-color: rgba(34, 197, 94, 0.25);
+}
+
+.table-status-btn.activate:hover {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.16);
+  border-color: rgba(34, 197, 94, 0.5);
+  transform: translateY(-1px);
+}
+
+.table-action-btn:active,
+.table-status-btn:active {
+  transform: scale(0.96);
+}
+
+/* RESPONSIVE */
+
+@media (max-width: 768px) {
+  .theme-datatable .p-datatable-wrapper {
+    min-width: 900px;
+  }
+}
+
+@media (max-width: 480px) {
+  .theme-datatable .p-datatable-wrapper {
+    min-width: 800px;
+  }
+}

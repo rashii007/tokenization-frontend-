@@ -4,78 +4,147 @@ import { useMemo, useState } from "react";
 import {
   BarChart3,
   CalendarDays,
-  Building2,
   FileText,
   LayoutDashboard,
   List,
-  Monitor,
-  PieChart,
   Plus,
-  QrCode,
-  Store,
-  TrendingUp,
+  KeyRound,
+  PieChart,
+  Receipt,
   Users,
 } from "lucide-react";
 
 import "./Sidebar.css";
-import logo from "../../assets/images/logo.svg";
-
+import logo from "../../assets/images/logo.png";
 
 const NAV_GROUPS = [
+  // =========================
+  // DASHBOARD
+  // =========================
   {
     id: "dashboard",
     title: null,
-    items: [{ id: "dashboard", label: "Dashboard", path: "/dashboard", icon: LayoutDashboard }],
+    items: [
+      {
+        id: "dashboard",
+        label: "Dashboard",
+        path: "/dashboard",
+        icon: LayoutDashboard,
+      },
+    ],
   },
+
+  // =========================
+  // OPERATIONS
+  // =========================
   {
     id: "operations",
     title: "OPERATIONS",
     items: [
+      // =========================
+      // TOKEN
+      // =========================
       {
-        id: "merchant",
-        label: "Merchant",
-        icon: Store,
+        id: "token",
+        label: "Tokens",
+        icon: KeyRound,
         children: [
-          { id: "merchant-all", label: "Modify Merchants", path: "/merchants", icon: List },
-          { id: "merchant-add", label: "Add Merchant", path: "/merchants/onboard", icon: Plus },
-          { id: "merchant-report", label: "Report", path: "/merchant-reports", icon: FileText },
+          {
+            id: "token-all",
+            label: "Modify Tokens",
+            path: "/tokens",
+            icon: List,
+          },
+          // {
+          //   id: "token-add",
+          //   label: "Add Token",
+          //   path: "/tokens/onboard",
+          //   icon: Plus,
+          // },
+          {
+            id: "token-report",
+            label: "Token Report",
+            path: "/token-reports",
+            icon: FileText,
+          },
         ],
       },
+
+      // =========================
+      // TRANSACTION
+      // =========================
       {
-        id: "terminal",
-        label: "Terminal",
-        icon: Monitor,
+        id: "transaction",
+        label: "Transaction",
+        icon: Receipt,
         children: [
-          { id: "terminal-all", label: "Modify Terminals", path: "/terminals", icon: List },
-          { id: "terminal-add", label: "Add Terminal", path: "/terminals/create", icon: Plus },
-          { id: "terminal-reporting", label: "Reporting", path: "/terminals/reporting", icon: FileText },
+          {
+            id: "transaction-all",
+            label: "Transactions",
+            path: "/transactions",
+            icon: List,
+          },
+          // {
+          //   id: "transaction-add",
+          //   label: "Add Transaction",
+          //   path: "/transactions/create",
+          //   icon: Plus,
+          // },
+          {
+            id: "transaction-daily",
+            label: "Daily Transaction",
+            path: "/transactions/daily",
+            icon: CalendarDays,
+          },
+          {
+            id: "transaction-report",
+            label: "Transaction Reports",
+            path: "/transactions/reports",
+            icon: FileText,
+          },
         ],
-      },
-      {
-        id: "qr",
-        label: "QR",
-        icon: QrCode,
-        children: [{ id: "qr-coming", label: "Coming soon", path: "/dashboard" }],
       },
     ],
   },
-  {
-    id: "user-management",
-    title: "USER MANAGEMENT",
-    items: [
-      {
-        id: "users",
-        label: "User Management",
-        icon: Users,
-        children: [
-          { id: "users-all", label: "Modify User", path: "/users", icon: List },
-          { id: "users-add", label: "Add User", path: "/users/create", icon: Plus },
-          { id: "users-org", label: "Add Organization", path: "/users/organization", icon: Building2 },
-          { id: "users-reports", label: "Reports", path: "/users/reports", icon: BarChart3 },
-        ],
-      },
-    ],
-  },
+
+  // =========================
+  // USER MANAGEMENT
+  // =========================
+  // {
+  //   id: "user-management",
+  //   title: "USER MANAGEMENT",
+  //   items: [
+  //     {
+  //       id: "users",
+  //       label: "User Management",
+  //       icon: Users,
+  //       children: [
+  //         {
+  //           id: "users-all",
+  //           label: "Modify User",
+  //           path: "/users",
+  //           icon: List,
+  //         },
+  //         {
+  //           id: "users-add",
+  //           label: "Add User",
+  //           path: "/users/create",
+  //           icon: Plus,
+  //         },
+  //         {
+  //           id: "users-reports",
+  //           label: "User Reports",
+  //           path: "/user-reports",
+  //           icon: BarChart3,
+  //         },
+  //       ],
+  //     },
+  //   ],
+  // },
+
+  // =========================
+  // ANALYTICS
+  // =========================
   {
     id: "analytics",
     title: "ANALYTICS",
@@ -85,20 +154,42 @@ const NAV_GROUPS = [
         label: "Reports",
         icon: BarChart3,
         children: [
-          { id: "reports-daily", label: "Transaction Report", path: "/reporting", icon: FileText },
-          { id: "reports-merchant-performance", label: "Merchant Performance", path: "/merchant-reports", icon: TrendingUp },
-          { id: "reports-terminal", label: "Terminal Report", path: "/terminal-reports", icon: Monitor },
-          { id: "reports-qr", label: "QR Report", path: "/qr-reports", icon: QrCode },
-          { id: "reports-user", label: "User Report", path: "/user-reports", icon: Users },
-          { id: "reports-portfolio", label: "Portfolio Report", path: "/portfolio-report", icon: PieChart },
-          { id: "reports-merchant", label: "Merchant Daily Transactions", path: "/merchant-daily-transactions", icon: CalendarDays },
+          {
+            id: "reports-transaction",
+            label: "Transaction Report",
+            path: "/reporting",
+            icon: FileText,
+          },
+          {
+            id: "reports-token",
+            label: "Token Report",
+            path: "/token-reports",
+            icon: Receipt,
+          },
+          // {
+          //   id: "reports-user",
+          //   label: "User Report",
+          //   path: "/user-reports",
+          //   icon: Users,
+          // },
+          // {
+          //   id: "reports-portfolio",
+          //   label: "Portfolio Report",
+          //   path: "/portfolio-report",
+          //   icon: PieChart,
+          // },
         ],
       },
     ],
   },
 ];
 
-export default function Sidebar({ footerLabel, onNavigate, onClose, showClose }) {
+export default function Sidebar({
+  footerLabel,
+  onNavigate,
+  onClose,
+  showClose,
+}) {
   const navigate = useNavigate();
   const [openGroups, setOpenGroups] = useState({});
 
@@ -107,10 +198,13 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
   const iconClassName = (active) =>
     [
       "h-[18px] w-[18px]",
-      active ? "text-primary" : "text-muted-foreground group-hover:text-foreground",
+      active
+        ? "text-primary"
+        : "text-muted-foreground group-hover:text-foreground",
     ]
       .filter(Boolean)
       .join(" ");
+
   const resolveClassName = ({ isActive }) =>
     [
       "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition",
@@ -130,7 +224,10 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
       .join(" ");
 
   const toggleGroup = (id) => {
-    setOpenGroups((prev) => ({ ...prev, [id]: !prev?.[id] }));
+    setOpenGroups((prev) => ({
+      ...prev,
+      [id]: !prev?.[id],
+    }));
   };
 
   const handleLogout = () => {
@@ -141,6 +238,9 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
 
   return (
     <aside className="flex h-full w-[260px] flex-col border-r border-border bg-card/60 px-3 py-4 text-[13px] backdrop-blur">
+      {/* =========================
+          LOGO
+      ========================= */}
       <header className="relative flex items-center justify-between gap-3 px-1">
         <button
           type="button"
@@ -151,13 +251,19 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
           className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-2 py-1.5 text-left shadow-sm backdrop-blur hover:bg-white/15"
           aria-label="Go to dashboard"
         >
-          <img src={logo} alt="DigiKhata" className="h-8 w-auto" />
+          <img
+            src={logo}
+            alt=""
+            className="h-8 w-auto object-contain brightness-0 dark:brightness-0 dark:invert"
+          />{" "}
         </button>
+
         <button
           type="button"
           className={[
             "inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-background/30 text-foreground",
-            showClose ? "lg:hidden" : "hidden",
+            "transition-all duration-200 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/30 hover:scale-105",
+            showClose ? "" : "hidden",
           ]
             .filter(Boolean)
             .join(" ")}
@@ -168,6 +274,9 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
         </button>
       </header>
 
+      {/* =========================
+          NAVIGATION
+      ========================= */}
       <nav className="sidebar-scroll mt-6 flex flex-1 flex-col gap-4 overflow-y-auto pr-1">
         {groups.map((group, groupIdx) => (
           <div key={group.id} className="flex flex-col">
@@ -180,13 +289,29 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
 
               <div className="flex flex-col gap-1">
                 {group.items.map((item) => {
-                  const hasChildren = Array.isArray(item.children) && item.children.length > 0;
+                  const hasChildren =
+                    Array.isArray(item.children) && item.children.length > 0;
+
+                  {
+                    /* =========================
+                      SIMPLE MENU ITEM
+                  ========================= */
+                  }
                   if (!hasChildren) {
                     return (
-                      <NavLink key={item.id} to={item.path} className={resolveClassName} onClick={onNavigate}>
+                      <NavLink
+                        key={item.id}
+                        to={item.path}
+                        className={resolveClassName}
+                        onClick={onNavigate}
+                      >
                         {({ isActive }) => (
                           <>
-                            <item.icon className={iconClassName(isActive)} aria-hidden />
+                            <item.icon
+                              className={iconClassName(isActive)}
+                              aria-hidden
+                            />
+
                             <span className="truncate">{item.label}</span>
                           </>
                         )}
@@ -194,6 +319,11 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
                     );
                   }
 
+                  {
+                    /* =========================
+                      DROPDOWN MENU
+                  ========================= */
+                  }
                   const open = Boolean(openGroups?.[item.id]);
 
                   return (
@@ -209,10 +339,20 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
                           .join(" ")}
                         onClick={() => toggleGroup(item.id)}
                       >
-                        <item.icon className={iconClassName(open)} aria-hidden />
-                        <span className="min-w-0 flex-1 truncate text-left">{item.label}</span>
+                        <item.icon
+                          className={iconClassName(open)}
+                          aria-hidden
+                        />
+
+                        <span className="min-w-0 flex-1 truncate text-left">
+                          {item.label}
+                        </span>
+
                         <i
-                          className={["pi pi-angle-right text-xs transition-transform", open ? "rotate-90" : ""]
+                          className={[
+                            "pi pi-angle-right text-xs transition-transform",
+                            open ? "rotate-90" : "",
+                          ]
                             .filter(Boolean)
                             .join(" ")}
                           aria-hidden
@@ -228,7 +368,13 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
                               className={resolveSubClassName}
                               onClick={onNavigate}
                             >
-                              {child.icon ? <child.icon className="h-4 w-4 text-muted-foreground" aria-hidden /> : null}
+                              {child.icon ? (
+                                <child.icon
+                                  className="h-4 w-4 text-muted-foreground"
+                                  aria-hidden
+                                />
+                              ) : null}
+
                               <span className="truncate">{child.label}</span>
                             </NavLink>
                           ))}
@@ -240,11 +386,16 @@ export default function Sidebar({ footerLabel, onNavigate, onClose, showClose })
               </div>
             </div>
 
-            {groupIdx < groups.length - 1 ? <div className="my-3 h-px w-full bg-white/5" /> : null}
+            {groupIdx < groups.length - 1 ? (
+              <div className="my-3 h-px w-full bg-white/5" />
+            ) : null}
           </div>
         ))}
       </nav>
 
+      {/* =========================
+          LOGOUT
+      ========================= */}
       <footer className="mt-auto flex flex-col gap-3 pt-6">
         <button
           type="button"

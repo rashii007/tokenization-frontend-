@@ -1,48 +1,167 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&display=swap");
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/* =========================================================
+   LIGHT THEME
+========================================================= */
+
 :root {
-  font-family: 'Poppins', sans-serif;
+  font-family: "Poppins", sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color: #1c1f4a;
-  background-color: #edecfb;
+
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  --background: 222 47% 6%;
-  --foreground: 210 40% 98%;
-  --card: 222 47% 9%;
-  --card-foreground: 210 40% 98%;
-  --muted: 217 33% 13%;
-  --muted-foreground: 215 20% 65%;
-  --border: 217 33% 18%;
-  --primary: 190 95% 45%;
-  --primary-foreground: 210 40% 98%;
-  --accent: 217 33% 13%;
-  --accent-foreground: 210 40% 98%;
+  /* Background */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+
+  /* Cards */
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+
+  /* Muted */
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+
+  /* Border */
+  --border: 214 32% 91%;
+
+  /* Cyan / Teal */
+  --primary: 199 89% 48%;
+  --primary-foreground: 0 0% 100%;
+
+  /* Purple */
+  --accent: 262 83% 58%;
+  --accent-foreground: 0 0% 100%;
+
   --radius: 14px;
 }
+
+/* =========================================================
+   DARK THEME
+========================================================= */
+
+html.dark {
+  --background: 222 47% 6%;
+  --foreground: 210 40% 98%;
+
+  --card: 222 47% 9%;
+  --card-foreground: 210 40% 98%;
+
+  --muted: 217 33% 13%;
+  --muted-foreground: 215 20% 65%;
+
+  --border: 217 33% 18%;
+
+  --primary: 190 95% 45%;
+  --primary-foreground: 210 40% 98%;
+
+  --accent: 217 33% 13%;
+  --accent-foreground: 210 40% 98%;
+
+  --radius: 14px;
+}
+
+/* =========================================================
+   GLOBAL
+========================================================= */
 
 * {
   box-sizing: border-box;
 }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-  background: var(--app-background, #edecfb);
-  color: inherit;
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+html {
+  background: hsl(var(--background));
+  transition: background-color 0.3s ease;
 }
 
 body {
+  margin: 0;
+  min-height: 100vh;
+
   background: hsl(var(--background));
   color: hsl(var(--foreground));
+
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
 }
+
+a {
+  color: inherit;
+}
+
+/* =========================================================
+   PRIMEREACT - LIGHT MODE
+========================================================= */
+
+html:not(.dark) .p-datatable,
+html:not(.dark) .p-datatable-wrapper,
+html:not(.dark) .p-datatable-table {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-tbody > tr {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html:not(.dark) .p-datatable .p-datatable-tbody > tr > td {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+html:not(.dark) .p-paginator {
+  background: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* =========================================================
+   PRIMEREACT - DARK MODE
+========================================================= */
+
+html.dark .p-datatable,
+html.dark .p-datatable-wrapper,
+html.dark .p-datatable-table {
+  background: #111827 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .p-datatable .p-datatable-tbody > tr {
+  background: #111827 !important;
+  color: #f8fafc !important;
+}
+
+html.dark .p-datatable .p-datatable-tbody > tr > td {
+  background: #111827 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+html.dark .p-paginator {
+  background: #111827 !important;
+  color: #f8fafc !important;
+  border-color: #334155 !important;
+}
+
+/* =========================================================
+   CALENDAR
+========================================================= */
 
 .merchant-date-calendar.p-calendar.p-inputwrapper {
   width: 100%;
@@ -59,8 +178,4 @@ body {
   border-bottom-left-radius: 0;
   border-left: 0;
   margin-left: 0;
-}
-
-a {
-  color: inherit;
 }

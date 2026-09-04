@@ -1,71 +1,148 @@
-import { useMemo, useCallback, useState, useEffect } from "react";
-import api from "../../network/api";
+import { useMemo, useEffect, useState, useCallback } from "react";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import { Activity, CheckCircle2, CreditCard, Users } from "lucide-react";
 import { Chart } from "primereact/chart";
+import {
+  Activity,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
 
-const stats = [
-  { id: "merchants", label: "Total Merchants", value: 0 },
-  { id: "terminals-total", label: "Total Terminals", value: 0 },
-  { id: "terminals-live", label: "Total Terminals live", value: 0 },
-  { id: "terminals-active", label: "Total Terminals live", value: 0 },
-];
-
-
+import { useTheme } from "../../context/ThemeContext";
+import ThemeToggle from "../../components/ThemeToggle";
+import api from "../../network/api";
 
 export default function DashboardPage() {
-  const [tableRows, setTableRows] = useState([])
-  const [statValues, setStatValues] = useState([]);
-  const [merchantRows, setMerchantRows] = useState([]);
-  const [terminalRows, setTerminalRows] = useState([]);
-  const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
+  const { darkMode } = useTheme();
 
-  const decodeHexAsciiIfLikely = useCallback((value) => {
-    if (value === null || value === undefined) return null;
-    const hex = String(value).trim();
-    if (!hex) return null;
-    if (hex.length % 2 !== 0) return null;
-    if (!/^[0-9a-fA-F]+$/.test(hex)) return null;
+  /* =========================================================
+     STATE
+  ========================================================= */
 
-    let out = "";
-    for (let i = 0; i < hex.length; i += 2) {
-      const code = Number.parseInt(hex.slice(i, i + 2), 16);
-      if (Number.isNaN(code)) return null;
-      out += String.fromCharCode(code);
-    }
+  const [tokens, setTokens] = useState([]);
+  const [transactionRows, setTransactionRows] = useState([]);
 
-    const printable = /^[\x20-\x7E]+$/.test(out);
-    if (!printable) return null;
-    return out;
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const [currentTime, setCurrentTime] = useState(new Date());
+
+  /* =========================================================
+     CLOCK
+  ========================================================= */
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCurrentTime(new Date());
+    }, 1000);
+
+    return () => clearInterval(timer);
   }, []);
 
-  const formatRrn = useCallback(
-    (row) => {
-      const raw = row?.RRN;
-      const decoded = decodeHexAsciiIfLikely(raw);
-      return (decoded ?? String(raw ?? "")).trim();
-    },
-    [decodeHexAsciiIfLikely]
-  );
+  /* =========================================================
+     API RESPONSE NORMALIZER
+  ========================================================= */
 
-  const getTxnCreatedAt = useCallback(
-    (row) =>
+  const extractArray = useCallback((response) => {
+    const data = response?.data ?? response;
+
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (Array.isArray(data?.data)) {
+      return data.data;
+    }
+
+    if (Array.isArray(data?.results)) {
+      return data.results;
+    }
+
+    if (Array.isArray(data?.items)) {
+      return data.items;
+    }
+
+    if (Array.isArray(data?.tokens)) {
+      return data.tokens;
+    }
+
+    if (Array.isArray(data?.transactions)) {
+      return data.transactions;
+    }
+
+    return [];
+  }, []);
+
+  /* =========================================================
+     LOAD DASHBOARD DATA
+  ========================================================= */
+
+  const loadDashboardData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const [tokenResponse, transactionResponse] = await Promise.all([
+        api.get("/token/portal"),
+        api.get("/transaction/portal"),
+      ]);
+
+      const tokenData = extractArray(tokenResponse);
+      const transactionData = extractArray(transactionResponse);
+
+      setTokens(tokenData);
+      setTransactionRows(transactionData);
+    } catch (err) {
+      console.error("Dashboard API error:", err);
+
+      const errorMessage =
+        err?.response?.data?.message ||
+        err?.response?.data?.detail ||
+        err?.message ||
+        "Failed to load dashboard data. Please try again.";
+
+      setError(errorMessage);
+
+      setTokens([]);
+      setTransactionRows([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [extractArray]);
+
+  useEffect(() => {
+    loadDashboardData();
+  }, [loadDashboardData]);
+
+  /* =========================================================
+     HELPERS
+  ========================================================= */
+
+  const getTxnCreatedAt = useCallback((row) => {
+    return (
+      row?.transactionDate ??
       row?.CreatedAt ??
       row?.createdAt ??
       row?.created_at ??
-      row?.Created_at ??
-      row?.created ??
-      "",
-    []
-  );
+      row?.CreatedDate ??
+      row?.createdDate ??
+      ""
+    );
+  }, []);
 
   const formatTxnTime = useCallback(
     (row) => {
       const createdAt = getTxnCreatedAt(row);
+
       if (!createdAt) return "--";
+
       const parsed = new Date(createdAt);
+
       if (Number.isNaN(parsed.getTime())) return "--";
+
       return parsed.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
@@ -73,988 +150,1137 @@ export default function DashboardPage() {
         hour12: true,
       });
     },
-    [getTxnCreatedAt]
+    [getTxnCreatedAt],
   );
 
   const parseAmount = useCallback((value) => {
     if (value === null || value === undefined) return 0;
-    const raw = String(value);
-    const cleaned = raw.replace(/[^0-9.-]/g, "");
-    const num = Number.parseFloat(cleaned);
-    return Number.isFinite(num) ? num : 0;
+
+    const cleaned = String(value).replace(/[^0-9.-]/g, "");
+    const number = Number.parseFloat(cleaned);
+
+    return Number.isFinite(number) ? number : 0;
   }, []);
 
-  const monthlySeries = useMemo(() => {
-    const getCreatedAt = (row) =>
-      row?.CreatedAt ?? row?.createdAt ?? row?.created_at ?? row?.Created_at ?? row?.created ?? "";
+  const toLocalYmd = useCallback((date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
 
-    const monthKey = (date) => {
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, "0");
-      return `${y}-${m}`;
-    };
+    return `${year}-${month}-${day}`;
+  }, []);
 
-    const formatMonthLabel = (key) => {
-      const [y, m] = String(key).split("-");
-      const idx = Number(m) - 1;
-      const monthNames = [
-        "Jan",
-        "Feb",
-        "Mar",
-        "Apr",
-        "May",
-        "Jun",
-        "Jul",
-        "Aug",
-        "Sep",
-        "Oct",
-        "Nov",
-        "Dec",
-      ];
-      return `${monthNames[idx] ?? m} ${y}`;
-    };
+  /* =========================================================
+     TOKEN COUNT
+  ========================================================= */
 
-    const now = new Date();
-    const keys = [];
-    for (let i = 5; i >= 0; i -= 1) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      keys.push(monthKey(d));
-    }
+  const tokenCount = useMemo(() => {
+    return tokens.length;
+  }, [tokens]);
 
-    const buckets = new Map(keys.map((k) => [k, { count: 0, volume: 0 }]));
+  /* =========================================================
+     TRANSACTION COUNT
+  ========================================================= */
 
-    tableRows.forEach((row) => {
-      const createdAt = getCreatedAt(row);
-      if (!createdAt) return;
-      const parsed = new Date(createdAt);
-      if (Number.isNaN(parsed.getTime())) return;
-      const key = monthKey(parsed);
-      if (!buckets.has(key)) return;
-      const cur = buckets.get(key);
-      cur.count += 1;
-      cur.volume += parseAmount(row?.Amount);
-    });
+  const transactionCount = useMemo(() => {
+    return transactionRows.length;
+  }, [transactionRows]);
 
-    const labels = keys.map(formatMonthLabel);
-    const counts = keys.map((k) => buckets.get(k)?.count ?? 0);
-    const volumes = keys.map((k) => buckets.get(k)?.volume ?? 0);
-
-    return { labels, counts, volumes };
-  }, [parseAmount, tableRows]);
+  /* =========================================================
+     DATE SERIES
+  ========================================================= */
 
   const dateSeries = useMemo(() => {
-    const getCreatedAt = (row) =>
-      row?.CreatedAt ?? row?.createdAt ?? row?.created_at ?? row?.Created_at ?? row?.created ?? "";
-    const toLocalYmd = (d) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
-    };
-
     const now = new Date();
+
     const todayKey = toLocalYmd(now);
-    const yesterdayKey = toLocalYmd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
-    const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    const prevMonthDate = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const prevMonthKey = `${prevMonthDate.getFullYear()}-${String(prevMonthDate.getMonth() + 1).padStart(2, "0")}`;
+
+    const yesterdayKey = toLocalYmd(
+      new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1),
+    );
+
+    const thisMonthKey = `${now.getFullYear()}-${String(
+      now.getMonth() + 1,
+    ).padStart(2, "0")}`;
+
+    const previousMonthDate = new Date(
+      now.getFullYear(),
+      now.getMonth() - 1,
+      1,
+    );
+
+    const previousMonthKey = `${previousMonthDate.getFullYear()}-${String(
+      previousMonthDate.getMonth() + 1,
+    ).padStart(2, "0")}`;
 
     let todayCount = 0;
     let yesterdayCount = 0;
     let thisMonthCount = 0;
-    let prevMonthCount = 0;
+    let previousMonthCount = 0;
 
-    tableRows.forEach((row) => {
-      const createdAt = getCreatedAt(row);
+    transactionRows.forEach((row) => {
+      const createdAt = getTxnCreatedAt(row);
+
       if (!createdAt) return;
-      const parsed = new Date(createdAt);
-      if (Number.isNaN(parsed.getTime())) return;
-      const ymd = toLocalYmd(parsed);
-      if (ymd === todayKey) todayCount += 1;
-      if (ymd === yesterdayKey) yesterdayCount += 1;
-      const monthKey = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}`;
-      if (monthKey === thisMonthKey) thisMonthCount += 1;
-      if (monthKey === prevMonthKey) prevMonthCount += 1;
+
+      const date = new Date(createdAt);
+
+      if (Number.isNaN(date.getTime())) return;
+
+      const ymd = toLocalYmd(date);
+
+      const monthKey = `${date.getFullYear()}-${String(
+        date.getMonth() + 1,
+      ).padStart(2, "0")}`;
+
+      if (ymd === todayKey) todayCount++;
+
+      if (ymd === yesterdayKey) yesterdayCount++;
+
+      if (monthKey === thisMonthKey) thisMonthCount++;
+
+      if (monthKey === previousMonthKey) previousMonthCount++;
     });
 
-    const pctVsYesterday =
-      yesterdayCount > 0 ? ((todayCount - yesterdayCount) / yesterdayCount) * 100 : null;
-    const diffThisMonth = thisMonthCount - prevMonthCount;
+    const percentageVsYesterday =
+      yesterdayCount > 0
+        ? ((todayCount - yesterdayCount) / yesterdayCount) * 100
+        : null;
 
     return {
       todayCount,
       yesterdayCount,
-      pctVsYesterday,
       thisMonthCount,
-      prevMonthCount,
-      diffThisMonth,
+      previousMonthCount,
+      percentageVsYesterday,
+      monthDifference: thisMonthCount - previousMonthCount,
     };
-  }, [tableRows]);
+  }, [transactionRows, getTxnCreatedAt, toLocalYmd]);
 
-  const merchantsDelta = useMemo(() => {
-    const getCreatedAt = (row) =>
-      row?.CreatedAt ?? row?.createdAt ?? row?.created_at ?? row?.Created_at ?? row?.created ?? "";
+  /* =========================================================
+     MONTHLY SERIES
+  ========================================================= */
+
+  const monthlySeries = useMemo(() => {
     const now = new Date();
-    const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    let createdThisMonth = 0;
-    let hasAnyDate = false;
+    const keys = [];
 
-    merchantRows.forEach((row) => {
-      const createdAt = getCreatedAt(row);
-      if (!createdAt) return;
-      const parsed = new Date(createdAt);
-      if (Number.isNaN(parsed.getTime())) return;
-      hasAnyDate = true;
-      const monthKey = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}`;
-      if (monthKey === thisMonthKey) createdThisMonth += 1;
-    });
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
 
-    if (!hasAnyDate) return null;
-    return createdThisMonth;
-  }, [merchantRows]);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        "0",
+      )}`;
 
-  const terminalsMeta = useMemo(() => {
-    const total = terminalRows.length;
-    const live = terminalRows.filter((t) => String(t?.posType ?? "").toLowerCase() === "production").length;
-    const livePct = total > 0 ? (live / total) * 100 : null;
-    return { total, live, livePct };
-  }, [terminalRows]);
+      keys.push(key);
+    }
 
-  const merchantActivity = useMemo(() => {
-    const getCreatedAt = (row) =>
-      row?.CreatedAt ?? row?.createdAt ?? row?.created_at ?? row?.Created_at ?? row?.created ?? "";
-
-    const now = new Date();
-    const thisMonthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-
-    const txCounts = new Map();
-    (tableRows ?? []).forEach((row) => {
-      const createdAt = getCreatedAt(row);
-      if (!createdAt) return;
-      const parsed = new Date(createdAt);
-      if (Number.isNaN(parsed.getTime())) return;
-      const monthKey = `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, "0")}`;
-      if (monthKey !== thisMonthKey) return;
-
-      const mid = String(row?.MerchantID ?? row?.MID ?? "").trim();
-      if (!mid) return;
-      txCounts.set(mid, (txCounts.get(mid) ?? 0) + 1);
-    });
-
-    const merchantIds = new Set(
-      (merchantRows ?? [])
-        .map((m) => String(m?.MID ?? m?.MerchantID ?? "").trim())
-        .filter(Boolean)
+    const buckets = new Map(
+      keys.map((key) => [
+        key,
+        {
+          count: 0,
+          volume: 0,
+        },
+      ]),
     );
 
-    if (merchantIds.size === 0) {
-      for (const k of txCounts.keys()) merchantIds.add(k);
-    }
+    transactionRows.forEach((row) => {
+      const createdAt = getTxnCreatedAt(row);
 
-    const totals = { high: 0, medium: 0, low: 0, inactive: 0 };
-    for (const mid of merchantIds) {
-      const c = txCounts.get(mid) ?? 0;
-      if (c >= 50) totals.high += 1;
-      else if (c >= 16) totals.medium += 1;
-      else if (c >= 1) totals.low += 1;
-      else totals.inactive += 1;
-    }
-
-    const totalMerchants = merchantIds.size;
-    const pct = (n) => (totalMerchants > 0 ? (n / totalMerchants) * 100 : 0);
-
-    return {
-      totalMerchants,
-      totals,
-      pct: {
-        high: pct(totals.high),
-        medium: pct(totals.medium),
-        low: pct(totals.low),
-        inactive: pct(totals.inactive),
-      },
-    };
-  }, [merchantRows, tableRows]);
-
-  const merchantActivityData = useMemo(
-    () => ({
-      labels: ["High (50+)", "Medium (16-49)", "Low (≤15)", "Inactive"],
-      datasets: [
-        {
-          data: [
-            merchantActivity.totals.high,
-            merchantActivity.totals.medium,
-            merchantActivity.totals.low,
-            merchantActivity.totals.inactive,
-          ],
-          backgroundColor: [
-            "rgba(34, 197, 94, 0.9)",
-            "rgba(56, 189, 248, 0.9)",
-            "rgba(245, 158, 11, 0.9)",
-            "rgba(244, 63, 94, 0.9)",
-          ],
-          borderColor: "rgba(0,0,0,0)",
-          borderWidth: 0,
-        },
-      ],
-    }),
-    [merchantActivity]
-  );
-
-  const merchantActivityOptions = useMemo(
-    () => ({
-      maintainAspectRatio: false,
-      cutout: "72%",
-      layout: {
-        padding: 0,
-      },
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          titleColor: "rgba(255,255,255,0.95)",
-          bodyColor: "rgba(255,255,255,0.9)",
-        },
-      },
-    }),
-    []
-  );
-
-  const dashboardWidgets = useMemo(() => {
-    const getCreatedAt = (row) =>
-      row?.CreatedAt ?? row?.createdAt ?? row?.created_at ?? row?.Created_at ?? row?.created ?? "";
-
-    const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const nextMonthStart = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    const lastMonthStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-
-    const isInRange = (d, start, end) => d >= start && d < end;
-
-    const merchantMap = new Map();
-    (merchantRows ?? []).forEach((m) => {
-      const mid = String(m?.MID ?? m?.MerchantID ?? "").trim();
-      if (!mid) return;
-      merchantMap.set(mid, {
-        name: String(m?.MerchantName ?? m?.BusinessName ?? mid),
-        subtitle: String(m?.Address ?? ""),
-      });
-    });
-
-    const countsThisMonth = new Map();
-    const countsLastMonth = new Map();
-    const volumeThisMonth = new Map();
-    let thisMonthTotal = 0;
-    let thisMonthSuccess = 0;
-    let thisMonthVolume = 0;
-    let lastMonthTotal = 0;
-    let lastMonthSuccess = 0;
-    let lastMonthVolume = 0;
-    const hourBuckets = new Array(24).fill(0);
-    let failedToday = 0;
-    let todayTotal = 0;
-
-    let newOnboardedThisMonth = null;
-
-    const todayYmd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(
-      now.getDate()
-    ).padStart(2, "0")}`;
-    const toLocalYmd = (d) => {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, "0");
-      const day = String(d.getDate()).padStart(2, "0");
-      return `${y}-${m}-${day}`;
-    };
-
-    (tableRows ?? []).forEach((row) => {
-      const createdAt = getCreatedAt(row);
       if (!createdAt) return;
-      const parsed = new Date(createdAt);
-      if (Number.isNaN(parsed.getTime())) return;
 
-      const mid = String(row?.MerchantID ?? row?.MID ?? "").trim();
-      const amount = parseAmount(row?.Amount);
-      const success = String(row?.ResponseCode ?? "").trim() === "00";
+      const date = new Date(createdAt);
 
-      if (isInRange(parsed, thisMonthStart, nextMonthStart)) {
-        thisMonthTotal += 1;
-        if (success) thisMonthSuccess += 1;
-        thisMonthVolume += amount;
-        if (mid) {
-          countsThisMonth.set(mid, (countsThisMonth.get(mid) ?? 0) + 1);
-          volumeThisMonth.set(mid, (volumeThisMonth.get(mid) ?? 0) + amount);
-        }
-        hourBuckets[parsed.getHours()] += 1;
-      }
+      if (Number.isNaN(date.getTime())) return;
 
-      if (isInRange(parsed, lastMonthStart, thisMonthStart)) {
-        lastMonthTotal += 1;
-        if (success) lastMonthSuccess += 1;
-        lastMonthVolume += amount;
-        if (mid) countsLastMonth.set(mid, (countsLastMonth.get(mid) ?? 0) + 1);
-      }
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
+        2,
+        "0",
+      )}`;
 
-      if (toLocalYmd(parsed) === todayYmd) {
-        todayTotal += 1;
-        if (!success) failedToday += 1;
+      if (!buckets.has(key)) return;
+
+      const bucket = buckets.get(key);
+
+      bucket.count += 1;
+      bucket.volume += parseAmount(row?.amount);
+    });
+
+    const labels = keys.map((key) => {
+      const [year, month] = key.split("-");
+
+      return new Date(Number(year), Number(month) - 1, 1).toLocaleString(
+        "en-US",
+        {
+          month: "short",
+          year: "numeric",
+        },
+      );
+    });
+
+    const counts = keys.map((key) => buckets.get(key)?.count ?? 0);
+
+    const volumes = keys.map((key) => buckets.get(key)?.volume ?? 0);
+
+    return {
+      labels,
+      counts,
+      volumes,
+    };
+  }, [transactionRows, getTxnCreatedAt, parseAmount]);
+
+  /* =========================================================
+     TOTAL VOLUME
+  ========================================================= */
+
+  const totalVolume = useMemo(() => {
+    return transactionRows.reduce(
+      (total, row) => total + parseAmount(row?.amount),
+      0,
+    );
+  }, [transactionRows, parseAmount]);
+
+  /* =========================================================
+     TRANSACTION STATS
+  ========================================================= */
+
+  const transactionStats = useMemo(() => {
+    let success = 0;
+    let failed = 0;
+
+    transactionRows.forEach((row) => {
+      const status = String(row?.status ?? "")
+        .trim()
+        .toLowerCase();
+
+      if (
+        status === "success" ||
+        status === "successful" ||
+        status === "completed"
+      ) {
+        success++;
+      } else {
+        failed++;
       }
     });
 
-    const underTarget = [];
-    const TARGET = 15;
-    for (const [mid, count] of countsThisMonth.entries()) {
-      if (count <= TARGET) {
-        const pct = TARGET > 0 ? (count / TARGET) * 100 : 0;
-        const risk = count <= 5 ? "Critical" : count <= 10 ? "High" : "Medium";
-        const meta = merchantMap.get(mid) ?? { name: mid, subtitle: "" };
-        underTarget.push({ mid, name: meta.name, subtitle: meta.subtitle, count, pct, risk });
-      }
-    }
-    underTarget.sort((a, b) => a.count - b.count);
+    const total = success + failed;
 
-    const topPerformers = [];
-    for (const [mid, count] of countsThisMonth.entries()) {
-      const meta = merchantMap.get(mid) ?? { name: mid, subtitle: "" };
-      const vol = volumeThisMonth.get(mid) ?? 0;
-      topPerformers.push({ mid, name: meta.name, subtitle: meta.subtitle, count, volume: vol });
-    }
-    topPerformers.sort((a, b) => b.count - a.count);
+    const successRate = total > 0 ? (success / total) * 100 : 0;
 
-    const maxHour = hourBuckets.reduce(
-      (acc, v, i) => (v > acc.v ? { i, v } : acc),
-      { i: 0, v: -1 }
-    ).i;
-    const formatHour = (h) => {
-      const hr = h % 12 === 0 ? 12 : h % 12;
-      const ampm = h >= 12 ? "PM" : "AM";
-      return `${hr} ${ampm}`;
-    };
-    const peakHourLabel = `${formatHour(maxHour)}–${formatHour((maxHour + 2) % 24)}`;
+    const failedRate = total > 0 ? (failed / total) * 100 : 0;
 
-    const successRate = thisMonthTotal > 0 ? (thisMonthSuccess / thisMonthTotal) * 100 : 0;
-    const lastSuccessRate = lastMonthTotal > 0 ? (lastMonthSuccess / lastMonthTotal) * 100 : 0;
-    const successDelta = successRate - lastSuccessRate;
-
-    const avgTxnValue = thisMonthTotal > 0 ? thisMonthVolume / thisMonthTotal : 0;
-    const lastAvgTxnValue = lastMonthTotal > 0 ? lastMonthVolume / lastMonthTotal : 0;
-    const avgDeltaPct = lastAvgTxnValue > 0 ? ((avgTxnValue - lastAvgTxnValue) / lastAvgTxnValue) * 100 : 0;
-
-    const failRateToday = todayTotal > 0 ? (failedToday / todayTotal) * 100 : 0;
-
-    const totalKnownMerchants = Math.max(merchantRows?.length ?? 0, countsThisMonth.size);
-    const churnRisk = totalKnownMerchants > 0 ? Math.max(0, totalKnownMerchants - countsThisMonth.size) : 0;
+    const averageValue = total > 0 ? totalVolume / total : 0;
 
     return {
-      underTarget,
-      topPerformers,
-      insights: {
-        successRate,
-        successDelta,
-        avgTxnValue,
-        avgDeltaPct,
-        peakHourLabel,
-        failedToday,
-        failRateToday,
-        newOnboardedThisMonth,
-        churnRisk,
-      },
+      success,
+      failed,
+      total,
+      successRate,
+      failedRate,
+      averageValue,
     };
-  }, [merchantRows, parseAmount, tableRows]);
+  }, [transactionRows, totalVolume]);
 
-  const chartOptions = useMemo(
-    () => ({
+  /* =========================================================
+     HOURLY ACTIVITY
+  ========================================================= */
+
+  const hourlyActivity = useMemo(() => {
+    const hours = new Array(24).fill(0);
+
+    transactionRows.forEach((row) => {
+      const createdAt = getTxnCreatedAt(row);
+
+      if (!createdAt) return;
+
+      const date = new Date(createdAt);
+
+      if (Number.isNaN(date.getTime())) return;
+
+      hours[date.getHours()]++;
+    });
+
+    return hours;
+  }, [transactionRows, getTxnCreatedAt]);
+
+  /* =========================================================
+     CHART OPTIONS
+  ========================================================= */
+
+  const chartOptions = useMemo(() => {
+    const textColor = darkMode ? "#f8fafc" : "#1c1f4a";
+
+    const mutedColor = darkMode ? "#94a3b8" : "#677079";
+
+    const gridColor = darkMode
+      ? "rgba(148,163,184,0.15)"
+      : "rgba(103,112,121,0.15)";
+
+    return {
       maintainAspectRatio: false,
+
       plugins: {
         legend: {
           labels: {
-            color: "rgba(255,255,255,0.78)",
+            color: textColor,
             boxWidth: 10,
             boxHeight: 10,
           },
         },
+
         tooltip: {
-          titleColor: "rgba(255,255,255,0.95)",
-          bodyColor: "rgba(255,255,255,0.9)",
+          titleColor: textColor,
+          bodyColor: textColor,
+          backgroundColor: darkMode ? "#111827" : "#ffffff",
+          borderColor: darkMode ? "#334155" : "#e0e0e0",
+          borderWidth: 1,
         },
       },
+
       scales: {
         x: {
-          ticks: { color: "rgba(255,255,255,0.6)", maxRotation: 0, autoSkip: true },
-          grid: { color: "rgba(255,255,255,0.06)" },
+          ticks: {
+            color: mutedColor,
+            maxRotation: 0,
+            autoSkip: true,
+          },
+
+          grid: {
+            color: gridColor,
+          },
         },
+
         y: {
-          ticks: { color: "rgba(255,255,255,0.6)" },
-          grid: { color: "rgba(255,255,255,0.06)" },
+          ticks: {
+            color: mutedColor,
+          },
+
+          grid: {
+            color: gridColor,
+          },
         },
       },
-    }),
-    []
-  );
+    };
+  }, [darkMode]);
 
-  const txPerMonthData = useMemo(
+  /* =========================================================
+     CHART DATA
+  ========================================================= */
+
+  const transactionChartData = useMemo(
     () => ({
       labels: monthlySeries.labels,
+
       datasets: [
         {
-          label: "Txn count",
+          label: "Transactions",
+
           data: monthlySeries.counts,
+
           backgroundColor: "rgba(34, 211, 238, 0.35)",
+
           borderColor: "rgba(34, 211, 238, 0.9)",
+
           borderWidth: 1,
+
           borderRadius: 8,
         },
       ],
     }),
-    [monthlySeries]
+    [monthlySeries],
   );
 
-  const txVolumeData = useMemo(
+  const volumeChartData = useMemo(
     () => ({
       labels: monthlySeries.labels,
+
       datasets: [
         {
-          label: "Volume",
+          label: "Transaction Volume",
+
           data: monthlySeries.volumes,
+
           tension: 0.3,
+
           fill: true,
+
           backgroundColor: "rgba(34, 211, 238, 0.10)",
+
           borderColor: "rgba(34, 211, 238, 0.85)",
+
           pointRadius: 3,
-          pointHoverRadius: 4,
+
+          pointHoverRadius: 5,
         },
       ],
     }),
-    [monthlySeries]
+    [monthlySeries],
   );
-useEffect(()=>{
-    const loadMerchants = async()=>{
-    var response = await api.get("/allTransactions");
-    const data  = response.data.data;
-    const safe = Array.isArray(data) ? data.slice(Math.max(0, data.length - 5000)) : [];
-    setTableRows(safe)
-    }
-    loadMerchants()
-   },[])
 
-  useEffect(() => {
-    const loadMerchants = async () => {
-      try {
-        const response = await api.get("/all-merchants");
-        setMerchantRows(response.data?.data ?? []);
-      } catch {
-        setMerchantRows([]);
-      }
+  const hourlyChartData = useMemo(() => {
+    const labels = Array.from({ length: 24 }, (_, hour) => {
+      const displayHour = hour % 12 === 0 ? 12 : hour % 12;
+
+      const ampm = hour >= 12 ? "PM" : "AM";
+
+      return `${displayHour} ${ampm}`;
+    });
+
+    return {
+      labels,
+
+      datasets: [
+        {
+          label: "Transactions",
+
+          data: hourlyActivity,
+
+          borderColor: "rgba(139, 92, 246, 0.9)",
+
+          backgroundColor: "rgba(139, 92, 246, 0.12)",
+
+          fill: true,
+
+          tension: 0.35,
+
+          pointRadius: 3,
+        },
+      ],
     };
+  }, [hourlyActivity]);
 
-    const loadTerminals = async () => {
-      try {
-        const response = await api.get("/allTerminals");
-        setTerminalRows(response.data?.terminals ?? []);
-      } catch {
-        setTerminalRows([]);
-      }
-    };
+  /* =========================================================
+     TABLE COLUMNS
+     NEW API:
+     transactionId
+     tokenId
+     transactionType
+     amount
+     currencyCode
+     referenceNumber
+     status
+     transactionDate
+  ========================================================= */
 
-    loadMerchants();
-    loadTerminals();
-  }, []);
-
-   useEffect(()=>{
- const loadStats = async()=>{
-    var response = await api.get("/reporting-stats");
-   const data  = response.data;
-    const stats = [
-  { id: "merchants", label: "Total Merchants", value: data.totalMerchants },
-  { id: "Terminals", label: "Total Terminals", value: data.totalTerminals },
-  { id: "Today's Transactions", label: "Total Transaction today", value: data.todayTransactions },
-  { id: "Transactions", label: "Total Transactions", value: data.totalTransactions },
-];
-    setStatValues(stats)
-    }
-    loadStats()
-   },[])
-
- const columns = useMemo(
+  const columns = useMemo(
     () => [
-      { field: "CreatedAt", header: "Time", body: (row) => formatTxnTime(row) },
-      { field: "Amount", header: "Amount" },
-      { field: "STAN", header: "STAN" },
-      { field: "RRN", header: "RRN", body: (row) => formatRrn(row) },
-       {field: "AuthNumber", header:"Auth Number"},
-      {field: "ResponseCode", header:"Response Code"},
-      {field: "TerminalID", header:"TID"},
-      {field: "CardNumber", header:"Card No."},
-      {field: "CardScheme", header:"Card Scheme"},
-      {field: "BatchNo", header:"Batch No."},
-       ],
-    [formatRrn, formatTxnTime]
+      {
+        field: "transactionDate",
+        header: "Time",
+        body: (row) => formatTxnTime(row),
+      },
+
+      {
+        field: "transactionId",
+        header: "Transaction ID",
+        body: (row) => row?.transactionId ?? "--",
+      },
+
+      {
+        field: "tokenId",
+        header: "Token ID",
+        body: (row) => row?.tokenId ?? "--",
+      },
+
+      {
+        field: "transactionType",
+        header: "Type",
+        body: (row) => row?.transactionType ?? "--",
+      },
+
+      {
+        field: "amount",
+        header: "Amount",
+        body: (row) =>
+          `${row?.currencyCode ?? "PKR"} ${parseAmount(
+            row?.amount,
+          ).toLocaleString()}`,
+      },
+
+      {
+        field: "currencyCode",
+        header: "Currency",
+        body: (row) => row?.currencyCode ?? "--",
+      },
+
+      {
+        field: "referenceNumber",
+        header: "Reference",
+        body: (row) => row?.referenceNumber ?? "--",
+      },
+
+      {
+        field: "status",
+        header: "Status",
+        body: (row) => {
+          const status = String(row?.status ?? "--");
+          const normalizedStatus = status.toLowerCase();
+
+          const success =
+            normalizedStatus === "success" ||
+            normalizedStatus === "successful" ||
+            normalizedStatus === "completed";
+
+          const pending = normalizedStatus === "pending";
+
+          return (
+            <span
+              className={[
+                "inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-semibold",
+                success
+                  ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+                  : pending
+                    ? "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                    : "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
+              ].join(" ")}
+            >
+              {status}
+            </span>
+          );
+        },
+      },
+
+      {
+        field: "transactionDate",
+        header: "Date",
+        body: (row) => row?.transactionDate ?? "--",
+      },
+    ],
+    [formatTxnTime, parseAmount],
   );
+
+  /* =========================================================
+     STATS
+  ========================================================= */
+
+  const stats = [
+    {
+      id: "token",
+      label: "Total Tokens",
+      value: tokenCount,
+      icon: Wallet,
+      accent: "bg-cyan-400",
+      bottom: "Live token data",
+    },
+
+    {
+      id: "transactions",
+      label: "Total Transactions",
+      value: transactionCount,
+      icon: Activity,
+      accent: "bg-violet-400",
+
+      bottom: `${
+        dateSeries.monthDifference >= 0 ? "+" : ""
+      }${dateSeries.monthDifference} vs last month`,
+    },
+
+    {
+      id: "today",
+      label: "Transactions Today",
+      value: dateSeries.todayCount,
+      icon: CreditCard,
+      accent: "bg-emerald-400",
+
+      bottom:
+        dateSeries.percentageVsYesterday === null
+          ? "-- vs yesterday"
+          : `${
+              dateSeries.percentageVsYesterday >= 0 ? "+" : ""
+            }${dateSeries.percentageVsYesterday.toFixed(1)}% vs yesterday`,
+    },
+
+    {
+      id: "volume",
+      label: "Transaction Volume",
+      value: totalVolume,
+      icon: TrendingUp,
+      accent: "bg-amber-400",
+      bottom: "PKR volume",
+    },
+  ];
+
+  /* =========================================================
+     RETURN
+  ========================================================= */
 
   return (
-    <div className="page-placeholder">
-      <header className="mb-4">
-        <h1 className="text-2xl font-semibold text-foreground">Dashboard</h1>
-        <div className="mt-1 text-xs text-muted-foreground">Dashboard Overview</div>
+    <div
+      className="min-h-full transition-colors duration-300"
+      style={{
+        backgroundColor: "hsl(var(--background))",
+        color: "hsl(var(--foreground))",
+      }}
+    >
+      {/* HEADER */}
+
+      <header className="mb-6">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">
+              Dashboard
+            </h1>
+
+            <div className="mt-1 text-xs text-muted-foreground">
+              Token & Transaction Overview
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 shadow-sm">
+              <Clock3 className="h-4 w-4 text-cyan-400" />
+
+              <span className="text-sm font-medium text-foreground">
+                {currentTime.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: true,
+                })}
+              </span>
+            </div>
+          </div>
+        </div>
       </header>
 
-      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {statValues.map((stat) => {
-          const meta = (() => {
-            const id = String(stat.id ?? "").toLowerCase();
-            if (id.includes("merchant")) {
-              const deltaText =
-                merchantsDelta === null
-                  ? "--"
-                  : `${merchantsDelta >= 0 ? "+" : ""}${merchantsDelta.toLocaleString()} this month`;
-              return {
-                Icon: Users,
-                accent: "bg-cyan-400",
-                deltaText,
-                deltaColor: merchantsDelta === null ? "text-muted-foreground" : "text-emerald-400",
-              };
-            }
-            if (id.includes("terminal")) {
-              const pctText =
-                terminalsMeta.livePct === null
-                  ? "--"
-                  : `${terminalsMeta.livePct.toFixed(1)}% live`;
-              return {
-                Icon: CheckCircle2,
-                accent: "bg-emerald-400",
-                deltaText: pctText,
-                deltaColor: terminalsMeta.livePct === null ? "text-muted-foreground" : "text-emerald-400",
-              };
-            }
-            if (id.includes("today")) {
-              const pct = dateSeries.pctVsYesterday;
-              const pctText =
-                pct === null
-                  ? "--"
-                  : `${pct >= 0 ? "+" : ""}${pct.toFixed(1)}% vs yesterday`;
-              return {
-                Icon: CreditCard,
-                accent: "bg-cyan-400",
-                deltaText: pctText,
-                deltaColor: pct === null ? "text-muted-foreground" : pct >= 0 ? "text-emerald-400" : "text-rose-400",
-              };
-            }
+      {/* ERROR */}
 
-            if (id === "transactions") {
-              const diff = dateSeries.diffThisMonth;
-              const deltaText = `${diff >= 0 ? "+" : ""}${diff.toLocaleString()} vs last month`;
-              return {
-                Icon: Activity,
-                accent: "bg-violet-400",
-                deltaText,
-                deltaColor: diff >= 0 ? "text-emerald-400" : "text-rose-400",
-              };
-            }
-            return {
-              Icon: Activity,
-              accent: "bg-violet-400",
-              deltaText: "All time",
-              deltaColor: "text-muted-foreground",
-            };
-          })();
+      {error && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
+          <span>{error}</span>
+
+          <button
+            type="button"
+            onClick={loadDashboardData}
+            className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-500/10"
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* STATS */}
+
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
 
           return (
             <article
               key={stat.id}
-              className="relative overflow-hidden rounded-2xl border border-border bg-card/70 px-5 py-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur"
+              className="relative overflow-hidden rounded-2xl border border-border px-5 py-4 shadow-sm backdrop-blur transition-colors duration-300"
+              style={{
+                backgroundColor: "hsl(var(--card) / 0.7)",
+              }}
             >
-              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
+              <div
+                className="absolute inset-0 bg-gradient-to-b from-foreground/[0.03] to-transparent dark:from-white/[0.04]"
+                aria-hidden
+              />
 
-              <div className="relative flex flex-col gap-2">
-                <meta.Icon className="h-5 w-5 text-primary" aria-hidden />
-                <div className="text-2xl font-semibold tracking-tight text-foreground">
-                  {Number(stat.value ?? 0).toLocaleString()}
+              <div className="relative">
+                <div className="flex items-center justify-between">
+                  <Icon className="h-5 w-5 text-primary" />
+
+                  {stat.id === "token" && (
+                    <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-medium text-cyan-600 dark:text-cyan-300">
+                      LIVE
+                    </span>
+                  )}
                 </div>
-                <div className="text-xs text-muted-foreground">{stat.label}</div>
-                <div className={joinClasses("mt-1 text-xs font-semibold", meta.deltaColor)}>{meta.deltaText}</div>
+
+                <div className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
+                  {loading ? (
+                    <span className="animate-pulse">...</span>
+                  ) : stat.id === "volume" ? (
+                    `PKR ${Number(stat.value).toLocaleString()}`
+                  ) : (
+                    Number(stat.value).toLocaleString()
+                  )}
+                </div>
+
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {stat.label}
+                </div>
+
+                <div className="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                  {stat.bottom}
+                </div>
               </div>
 
-              <div className={joinClasses("absolute bottom-0 left-0 h-[2px] w-full opacity-90", meta.accent)} aria-hidden />
+              <div
+                className={`absolute bottom-0 left-0 h-[2px] w-full ${stat.accent}`}
+              />
             </article>
           );
         })}
       </section>
 
+      {/* INFORMATION CARDS */}
+
       <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="relative overflow-hidden rounded-2xl border border-border bg-card/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative mb-3">
-            <div className="text-sm font-semibold text-foreground">Transactions per Month</div>
-            <div className="mt-1 text-xs text-muted-foreground">Last 6 months</div>
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div className="text-sm font-semibold text-foreground">
+            Token Information
           </div>
-          <div className="relative h-[260px]">
-            <Chart type="bar" data={txPerMonthData} options={chartOptions} />
+
+          <div className="mt-1 text-xs text-muted-foreground">
+            Current token state
+          </div>
+
+          <div className="mt-5 flex items-center justify-between rounded-2xl border border-border bg-muted/30 p-5">
+            <div>
+              <div className="text-xs text-muted-foreground">
+                Available Tokens
+              </div>
+
+              <div className="mt-2 text-3xl font-semibold text-foreground">
+                {loading ? "..." : tokenCount.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10">
+              <Wallet className="h-6 w-6 text-cyan-400" />
+            </div>
           </div>
         </article>
 
-        <article className="relative overflow-hidden rounded-2xl border border-border bg-card/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative mb-3">
-            <div className="text-sm font-semibold text-foreground">Transaction Volume (PKR)</div>
-            <div className="mt-1 text-xs text-muted-foreground">Month-on-month volume</div>
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div className="text-sm font-semibold text-foreground">
+            System Time
           </div>
-          <div className="relative h-[260px]">
-            <Chart type="line" data={txVolumeData} options={chartOptions} />
+
+          <div className="mt-1 text-xs text-muted-foreground">
+            Current dashboard time
+          </div>
+
+          <div className="mt-5 flex items-center justify-between rounded-2xl border border-border bg-muted/30 p-5">
+            <div>
+              <div className="text-xs text-muted-foreground">Current Time</div>
+
+              <div className="mt-2 text-3xl font-semibold text-foreground">
+                {currentTime.toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: true,
+                })}
+              </div>
+            </div>
+
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10">
+              <Clock3 className="h-6 w-6 text-violet-400" />
+            </div>
           </div>
         </article>
       </section>
+
+      {/* CHARTS */}
+
+      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div>
+            <div className="text-sm font-semibold text-foreground">
+              Transactions per Month
+            </div>
+
+            <div className="mt-1 text-xs text-muted-foreground">
+              Last 6 months
+            </div>
+          </div>
+
+          <div className="mt-5 h-[280px]">
+            <Chart
+              key={`transactions-${darkMode}`}
+              type="bar"
+              data={transactionChartData}
+              options={chartOptions}
+            />
+          </div>
+        </article>
+
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div>
+            <div className="text-sm font-semibold text-foreground">
+              Transaction Volume
+            </div>
+
+            <div className="mt-1 text-xs text-muted-foreground">
+              Monthly PKR volume
+            </div>
+          </div>
+
+          <div className="mt-5 h-[280px]">
+            <Chart
+              key={`volume-${darkMode}`}
+              type="line"
+              data={volumeChartData}
+              options={chartOptions}
+            />
+          </div>
+        </article>
+      </section>
+
+      {/* HOURLY ACTIVITY */}
 
       <section className="mt-6">
-        <article className="relative overflow-hidden rounded-2xl border border-border bg-card/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div>
-              <div className="text-sm font-semibold text-foreground">Merchant Activity Distribution</div>
-              <div className="mt-1 text-xs text-muted-foreground">Portfolio health — frequency segmentation</div>
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div>
+            <div className="text-sm font-semibold text-foreground">
+              Transaction Activity
             </div>
 
-            <div className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-[260px_1fr]">
-              <div className="relative -mt-4 flex w-full items-start justify-center">
-                <div className="relative mx-auto h-[220px] w-[220px]">
-                  <Chart type="doughnut" data={merchantActivityData} options={merchantActivityOptions} />
-                  <div className="pointer-events-none absolute inset-0 flex translate-y-7 flex-col items-center justify-center text-center">
-                    <div className="text-3xl font-semibold leading-none text-foreground">
-                      {Number(merchantActivity.totalMerchants ?? 0).toLocaleString()}
-                    </div>
-                    <div className="mt-1 text-xs leading-none text-muted-foreground">merchants</div>
-                  </div>
-                </div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Transaction activity by hour
+            </div>
+          </div>
+
+          <div className="mt-5 h-[280px]">
+            <Chart
+              key={`hourly-${darkMode}`}
+              type="line"
+              data={hourlyChartData}
+              options={chartOptions}
+            />
+          </div>
+        </article>
+      </section>
+
+      {/* INSIGHTS */}
+
+      <section className="mt-6">
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div>
+            <div className="text-sm font-semibold text-foreground">
+              Transaction Insights
+            </div>
+
+            <div className="mt-1 text-xs text-muted-foreground">
+              Operational transaction metrics
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+
+                <span className="text-xs font-semibold text-foreground">
+                  Success Rate
+                </span>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    <span className="h-2 w-2 rounded-sm bg-emerald-400" aria-hidden />
-                    <span>High (50+)</span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-foreground">
-                    {Number(merchantActivity.totals.high ?? 0).toLocaleString()}
-                  </div>
-                  <div className="mt-3 h-1 w-full rounded-full bg-white/5">
-                    <div
-                      className="h-1 rounded-full bg-emerald-400"
-                      style={{ width: `${merchantActivity.pct.high.toFixed(0)}%` }}
-                    />
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {merchantActivity.pct.high.toFixed(0)}% of portfolio
-                  </div>
-                </div>
+              <div className="mt-4 text-2xl font-semibold text-foreground">
+                {transactionStats.successRate.toFixed(1)}%
+              </div>
 
-                <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    <span className="h-2 w-2 rounded-sm bg-sky-400" aria-hidden />
-                    <span>Medium (16-49)</span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-foreground">
-                    {Number(merchantActivity.totals.medium ?? 0).toLocaleString()}
-                  </div>
-                  <div className="mt-3 h-1 w-full rounded-full bg-white/5">
-                    <div
-                      className="h-1 rounded-full bg-sky-400"
-                      style={{ width: `${merchantActivity.pct.medium.toFixed(0)}%` }}
-                    />
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {merchantActivity.pct.medium.toFixed(0)}% of portfolio
-                  </div>
-                </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                {transactionStats.success} successful
+              </div>
+            </div>
 
-                <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    <span className="h-2 w-2 rounded-sm bg-amber-400" aria-hidden />
-                    <span>Low (≤15)</span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-foreground">
-                    {Number(merchantActivity.totals.low ?? 0).toLocaleString()}
-                  </div>
-                  <div className="mt-3 h-1 w-full rounded-full bg-white/5">
-                    <div
-                      className="h-1 rounded-full bg-amber-400"
-                      style={{ width: `${merchantActivity.pct.low.toFixed(0)}%` }}
-                    />
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {merchantActivity.pct.low.toFixed(0)}% of portfolio
-                  </div>
-                </div>
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-rose-500 dark:text-rose-400" />
 
-                <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    <span className="h-2 w-2 rounded-sm bg-rose-400" aria-hidden />
-                    <span>Inactive</span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-foreground">
-                    {Number(merchantActivity.totals.inactive ?? 0).toLocaleString()}
-                  </div>
-                  <div className="mt-3 h-1 w-full rounded-full bg-white/5">
-                    <div
-                      className="h-1 rounded-full bg-rose-400"
-                      style={{ width: `${merchantActivity.pct.inactive.toFixed(0)}%` }}
-                    />
-                  </div>
-                  <div className="mt-2 text-xs text-muted-foreground">
-                    {merchantActivity.pct.inactive.toFixed(0)}% of portfolio
-                  </div>
-                </div>
+                <span className="text-xs font-semibold text-foreground">
+                  Failed Transactions
+                </span>
+              </div>
+
+              <div className="mt-4 text-2xl font-semibold text-foreground">
+                {transactionStats.failed}
+              </div>
+
+              <div className="mt-2 text-xs text-rose-600 dark:text-rose-400">
+                {transactionStats.failedRate.toFixed(1)}% failure rate
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+
+                <span className="text-xs font-semibold text-foreground">
+                  Avg Transaction
+                </span>
+              </div>
+
+              <div className="mt-4 text-2xl font-semibold text-foreground">
+                PKR {Math.round(transactionStats.averageValue).toLocaleString()}
+              </div>
+
+              <div className="mt-2 text-xs text-muted-foreground">
+                Average transaction value
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-violet-500 dark:text-violet-400" />
+
+                <span className="text-xs font-semibold text-foreground">
+                  Total Volume
+                </span>
+              </div>
+
+              <div className="mt-4 text-2xl font-semibold text-foreground">
+                PKR {Math.round(totalVolume).toLocaleString()}
+              </div>
+
+              <div className="mt-2 text-xs text-muted-foreground">
+                Current transaction data
               </div>
             </div>
           </div>
         </article>
       </section>
 
-      <section className="mt-6 grid grid-cols-1 items-stretch gap-4 lg:grid-cols-3">
-        <article className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-card/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative flex h-full flex-col">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-foreground">Underperforming Merchants</div>
-                <div className="mt-1 text-xs text-muted-foreground">Below threshold — needs attention</div>
-              </div>
-              <div className="inline-flex items-center gap-2 rounded-xl border border-white/5 bg-black/20 px-3 py-1 text-xs text-muted-foreground">
-                ≤ <span className="text-foreground">15</span> txns
-              </div>
-            </div>
-
-            <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-white/5 bg-black/20">
-              <div className="min-h-0 flex-1 overflow-auto">
-                <div className="min-w-[680px]">
-                  <div className="grid grid-cols-[1fr_80px_220px_120px] gap-3 border-b border-white/5 px-5 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                    <div>Merchant</div>
-                    <div className="text-center">Txns</div>
-                    <div className="text-center">Vs Target</div>
-                    <div className="text-right">Risk</div>
-                  </div>
-
-                  {(dashboardWidgets.underTarget ?? []).slice(0, 8).map((m) => {
-                    const barColor =
-                      m.risk === "Critical" ? "bg-rose-400" : m.risk === "High" ? "bg-amber-400" : "bg-emerald-400";
-                    const badge =
-                      m.risk === "Critical"
-                        ? "bg-rose-500/15 text-rose-200 border-rose-500/20"
-                        : m.risk === "High"
-                          ? "bg-amber-500/15 text-amber-200 border-amber-500/20"
-                          : "bg-cyan-500/15 text-cyan-200 border-cyan-500/20";
-                    const dotColor =
-                      m.risk === "Critical" ? "bg-rose-300" : m.risk === "High" ? "bg-amber-300" : "bg-cyan-300";
-                    const txnColor =
-                      m.risk === "Critical" ? "text-rose-300" : m.risk === "High" ? "text-amber-300" : "text-emerald-300";
-                    const pct = Math.max(0, Math.min(100, m.pct));
-
-                    return (
-                      <div
-                        key={m.mid}
-                        className="grid grid-cols-[1fr_80px_220px_120px] items-center gap-3 border-b border-white/5 px-5 py-4 last:border-b-0"
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-foreground">{m.name}</div>
-                          {m.subtitle ? (
-                            <div className="mt-1 truncate text-[11px] text-muted-foreground">{m.subtitle}</div>
-                          ) : null}
-                        </div>
-
-                        <div className={joinClasses("text-center text-sm font-semibold", txnColor)}>{m.count}</div>
-
-                        <div className="flex items-center gap-3">
-                          <div className="h-2 w-full rounded-full bg-white/5">
-                            <div className={joinClasses("h-2 rounded-full", barColor)} style={{ width: `${pct}%` }} />
-                          </div>
-                          <div className="w-10 text-right text-[11px] text-muted-foreground">{Math.round(pct)}%</div>
-                        </div>
-
-                        <div className="flex justify-end">
-                          <span
-                            className={joinClasses(
-                              "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[11px] font-semibold",
-                              badge
-                            )}
-                          >
-                            <span className={joinClasses("h-1.5 w-1.5 rounded-full", dotColor)} aria-hidden />
-                            {m.risk}
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </div>
-        </article>
-
-        <article className="relative overflow-hidden rounded-2xl border border-border bg-card/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div>
-              <div className="text-sm font-semibold text-foreground">Top Performers</div>
-              <div className="mt-1 text-xs text-muted-foreground">By txns this month</div>
-            </div>
-
-            <div className="mt-4 flex flex-col gap-3">
-              {(dashboardWidgets.topPerformers ?? []).slice(0, 5).map((m, idx) => {
-                const colors = [
-                  "bg-cyan-400",
-                  "bg-emerald-400",
-                  "bg-violet-400",
-                  "bg-amber-400",
-                  "bg-fuchsia-400",
-                ];
-                const barColor = colors[idx] ?? "bg-cyan-400";
-                const max = dashboardWidgets.topPerformers?.[0]?.count ?? 1;
-                const pct = max > 0 ? (m.count / max) * 100 : 0;
-
-                return (
-                  <div key={m.mid} className="rounded-2xl border border-white/5 bg-black/20 px-4 py-3">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="flex min-w-0 items-start gap-3">
-                        <span className="mt-0.5 inline-flex h-6 w-6 flex-none items-center justify-center rounded-full bg-background/30 text-[11px] font-semibold text-foreground">
-                          {idx + 1}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold text-foreground">{m.name}</div>
-                          {m.subtitle ? (
-                            <div className="mt-0.5 truncate text-[11px] text-muted-foreground">{m.subtitle}</div>
-                          ) : null}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-foreground">{m.count}</div>
-                        <div className="mt-0.5 text-[11px] text-muted-foreground">PKR {Math.round(m.volume).toLocaleString()}</div>
-                      </div>
-                    </div>
-                    <div className="mt-3 h-1 w-full rounded-full bg-white/5">
-                      <div className={joinClasses("h-1 rounded-full", barColor)} style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </article>
-
-        <article className="relative overflow-hidden rounded-2xl border border-border bg-card/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div>
-              <div className="text-sm font-semibold text-foreground">Insights</div>
-              <div className="mt-1 text-xs text-muted-foreground">Operational metrics</div>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Success Rate</div>
-                <div className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
-                  {dashboardWidgets.insights.successRate.toFixed(1)}%
-                </div>
-                <div
-                  className={joinClasses(
-                    "mt-2 text-[11px] font-semibold",
-                    dashboardWidgets.insights.successDelta >= 0 ? "text-emerald-400" : "text-rose-400"
-                  )}
-                >
-                  {dashboardWidgets.insights.successDelta >= 0 ? "↑" : "↓"} {Math.abs(dashboardWidgets.insights.successDelta).toFixed(2)} vs last mo
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Avg Txn Value</div>
-                <div className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
-                  PKR {Math.round(dashboardWidgets.insights.avgTxnValue).toLocaleString()}
-                </div>
-                <div
-                  className={joinClasses(
-                    "mt-2 text-[11px] font-semibold",
-                    dashboardWidgets.insights.avgDeltaPct >= 0 ? "text-emerald-400" : "text-rose-400"
-                  )}
-                >
-                  {dashboardWidgets.insights.avgDeltaPct >= 0 ? "↑" : "↓"} {Math.abs(dashboardWidgets.insights.avgDeltaPct).toFixed(1)}% vs last mo
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Peak Hour</div>
-                <div className="mt-3 text-2xl font-semibold tracking-tight text-foreground">{dashboardWidgets.insights.peakHourLabel}</div>
-                <div className="mt-2 text-[11px] text-muted-foreground">Daily avg</div>
-              </div>
-
-              <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Failed Today</div>
-                <div className="mt-3 text-2xl font-semibold tracking-tight text-foreground">{dashboardWidgets.insights.failedToday}</div>
-                <div className="mt-2 text-[11px] font-semibold text-rose-400">
-                  {dashboardWidgets.insights.failRateToday.toFixed(1)}% fail rate
-                </div>
-              </div>
-
-              <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">New Onboarded</div>
-                <div className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
-                  {dashboardWidgets.insights.newOnboardedThisMonth === null ? "--" : dashboardWidgets.insights.newOnboardedThisMonth.toLocaleString()}
-                </div>
-                <div className="mt-2 text-[11px] font-semibold text-emerald-400">This month</div>
-              </div>
-
-              <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Churn Risk</div>
-                <div className="mt-3 text-2xl font-semibold tracking-tight text-foreground">{dashboardWidgets.insights.churnRisk.toLocaleString()}</div>
-                <div className="mt-2 text-[11px] font-semibold text-rose-400">Need outreach</div>
-              </div>
-            </div>
-          </div>
-        </article>
-      </section>
-
-      
+      {/* TRANSACTION LOG */}
 
       <section className="mt-8">
-        <article className="relative overflow-hidden rounded-2xl border border-border bg-card/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <div>
-                <div className="text-sm font-semibold text-foreground">Transaction Log</div>
-              </div>
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div>
+            <div className="mb-1 text-sm font-semibold text-foreground">
+              Transaction Log
             </div>
 
-            <div className="overflow-hidden rounded-2xl border border-white/5 bg-black/20">
-              <DataTable
-                value={tableRows}
-                dataKey="srNo"
-                className="!bg-transparent"
-                tableClassName="!bg-transparent"
-                rowHover
-                size="small"
-                paginator
-                rows={50}
-                rowsPerPageOptions={[50, 100, 200]}
-                emptyMessage="No transactions found"
-              >
-                {columns.map((column) => (
-                  <Column
-                    key={column.field}
-                    field={column.field}
-                    header={column.header}
-                    body={column.body}
-                    headerClassName={joinClasses(
-                      "!border-0 !bg-transparent",
-                      "px-4 py-3",
-                      "text-[10px] font-semibold uppercase tracking-wider",
-                      "text-slate-400"
-                    )}
-                    bodyClassName={joinClasses(
-                      "px-4 py-3",
-                      "!border-0 border-t border-white/5",
-                      "text-sm text-slate-200"
-                    )}
-                  />
-                ))}
-              </DataTable>
+            <div className="mb-4 text-xs text-muted-foreground">
+              Recent token transaction activity
             </div>
+          </div>
+
+          <div
+            className="overflow-hidden rounded-2xl border border-border"
+            style={{
+              backgroundColor: "hsl(var(--muted) / 0.3)",
+            }}
+          >
+            <DataTable
+              value={transactionRows}
+              dataKey="id"
+              rowHover
+              size="small"
+              paginator
+              rows={5}
+              rowsPerPageOptions={[5, 10, 20]}
+              emptyMessage={
+                loading ? "Loading transactions..." : "No transactions found"
+              }
+              scrollable
+              scrollHeight="500px"
+              className="theme-datatable"
+              tableStyle={{
+                minWidth: "1200px",
+              }}
+            >
+              {columns.map((column) => (
+                <Column
+                  key={column.field}
+                  field={column.field}
+                  header={column.header}
+                  body={column.body}
+                  headerClassName="theme-table-header"
+                  bodyClassName="theme-table-body"
+                />
+              ))}
+            </DataTable>
           </div>
         </article>
       </section>
+
+      {/* PRIMEREACT THEME */}
+
+      <style>{`
+        .theme-datatable .p-datatable-table {
+          background: transparent !important;
+        }
+
+        .theme-datatable .p-datatable-thead > tr > th {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--muted-foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          padding: 0.75rem 1rem !important;
+          font-size: 10px !important;
+          font-weight: 600 !important;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          white-space: nowrap;
+        }
+
+        .theme-datatable .p-datatable-tbody > tr {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          transition: background-color 0.2s ease;
+        }
+
+        .theme-datatable .p-datatable-tbody > tr > td {
+          background: transparent !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          padding: 0.75rem 1rem !important;
+          font-size: 0.875rem !important;
+        }
+
+        .theme-datatable .p-datatable-tbody > tr:nth-child(even) {
+          background: hsl(var(--muted) / 0.35) !important;
+        }
+
+        .theme-datatable .p-datatable-tbody > tr:hover {
+          background: hsl(var(--primary) / 0.08) !important;
+        }
+
+        .theme-datatable .p-paginator {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
+
+        .theme-datatable .p-paginator .p-paginator-page,
+        .theme-datatable .p-paginator .p-paginator-first,
+        .theme-datatable .p-paginator .p-paginator-prev,
+        .theme-datatable .p-paginator .p-paginator-next,
+        .theme-datatable .p-paginator .p-paginator-last {
+          color: hsl(var(--foreground)) !important;
+          background: transparent !important;
+          border-radius: 0.5rem !important;
+        }
+
+        .theme-datatable .p-paginator .p-paginator-element:hover {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
+
+        .theme-datatable .p-paginator .p-paginator-page.p-highlight {
+          background: hsl(var(--primary) / 0.15) !important;
+          color: hsl(var(--primary)) !important;
+        }
+
+        .theme-datatable .p-paginator .p-dropdown {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border: 1px solid hsl(var(--border)) !important;
+          border-radius: 0.5rem !important;
+        }
+
+        .theme-datatable .p-paginator .p-dropdown .p-dropdown-label {
+          background: transparent !important;
+          color: hsl(var(--foreground)) !important;
+        }
+
+        .theme-datatable .p-paginator .p-dropdown .p-dropdown-trigger {
+          background: transparent !important;
+          color: hsl(var(--muted-foreground)) !important;
+        }
+
+        .theme-datatable .p-paginator .p-dropdown:hover,
+        .theme-datatable .p-paginator .p-dropdown.p-focus {
+          border-color: hsl(var(--primary)) !important;
+          box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2) !important;
+        }
+
+        .p-dropdown-panel {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border: 1px solid hsl(var(--border)) !important;
+          border-radius: 10px !important;
+        }
+
+        .p-dropdown-panel .p-dropdown-items {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          padding: 4px !important;
+        }
+
+        .p-dropdown-panel .p-dropdown-item {
+          background: transparent !important;
+          color: hsl(var(--foreground)) !important;
+          border-radius: 6px !important;
+        }
+
+        .p-dropdown-panel .p-dropdown-item:hover {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
+
+        .p-dropdown-panel .p-dropdown-item.p-highlight {
+          background: hsl(var(--primary) / 0.12) !important;
+          color: hsl(var(--primary)) !important;
+        }
+
+        .theme-datatable .p-datatable-wrapper {
+          scrollbar-width: thin;
+          scrollbar-color: hsl(var(--muted-foreground) / 0.4)
+            hsl(var(--muted) / 0.3);
+        }
+
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
+
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-track {
+          background: hsl(var(--muted) / 0.3);
+          border-radius: 999px;
+        }
+
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb {
+          background: hsl(var(--border));
+          border-radius: 999px;
+        }
+
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.5);
+        }
+
+        .theme-datatable .p-datatable-emptymessage > tr > td {
+          background: transparent !important;
+          color: hsl(var(--muted-foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          text-align: center;
+        }
+      `}</style>
     </div>
   );
 }

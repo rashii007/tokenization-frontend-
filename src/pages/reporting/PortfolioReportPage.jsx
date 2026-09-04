@@ -1,1086 +1,1630 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { Chart } from "primereact/chart";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import api from "../../network/api";
 
-const toLocalYmd = (date) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  const d = String(date.getDate()).padStart(2, "0");
-  return `${y}-${m}-${d}`;
+/* =========================================================
+   HELPERS
+========================================================= */
+
+const monthKey = (date) => {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 };
-
-const monthKey = (date) => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
 
 const formatMonthLabel = (key) => {
-  const [y, m] = String(key).split("-");
-  const idx = Number(m) - 1;
-  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  return `${monthNames[idx] ?? m} ${y}`;
+  const [year, month] = key.split("-");
+  return new Date(Number(year), Number(month) - 1, 1).toLocaleDateString(
+    "en-US",
+    {
+      month: "short",
+      year: "numeric",
+    },
+  );
 };
-
-const getCreatedAt = (row) =>
-  row?.CreateDateTime ?? row?.CreatedAt ?? row?.CreateDate ?? row?.createdAt ?? row?.created_at ?? row?.date ?? null;
 
 const parseAmount = (value) => {
-  if (value === null || value === undefined) return 0;
-  const raw = String(value);
-  const cleaned = raw.replace(/[^0-9.-]/g, "");
-  const num = Number.parseFloat(cleaned);
-  return Number.isFinite(num) ? num : 0;
-};
-
-const asLower = (v) => String(v ?? "").trim().toLowerCase();
-
-const isTxnSuccess = (t) => {
-  const direct = t?.isSuccess ?? t?.IsSuccess;
-  if (typeof direct === "boolean") return direct;
-  const code = String(t?.ResponseCode ?? t?.RespCode ?? t?.responseCode ?? t?.respCode ?? t?.Code ?? "").trim();
-  if (code) {
-    const c = code.toLowerCase();
-    if (c === "00" || c === "0" || c === "000" || c === "success" || c === "approved") return true;
-  }
-  const status = asLower(t?.Status ?? t?.status ?? t?.TxnStatus ?? t?.txnStatus ?? "");
-  if (status) {
-    if (status.includes("success") || status.includes("approved")) return true;
-    if (status.includes("fail") || status.includes("declin") || status.includes("reject")) return false;
-  }
-  return false;
+  if (typeof value === "number") return value;
+  return Number(String(value).replace(/[^0-9.-]+/g, "")) || 0;
 };
 
 const csvEscape = (value) => {
-  if (value === null || value === undefined) return "";
-  const str = String(value);
-  const escaped = str.replace(/"/g, '""');
-  return `"${escaped}"`;
+  if (value === null || value === undefined) {
+    return "";
+  }
+
+  const stringValue = String(value);
+
+  if (
+    stringValue.includes(",") ||
+    stringValue.includes('"') ||
+    stringValue.includes("\n")
+  ) {
+    return `"${stringValue.replace(/"/g, '""')}"`;
+  }
+
+  return stringValue;
 };
 
-export default function PortfolioReportPage() {
-  const [merchantRows, setMerchantRows] = useState([]);
-  const [terminalRows, setTerminalRows] = useState([]);
-  const [txRows, setTxRows] = useState([]);
-  const [loading, setLoading] = useState(true);
+/* =========================================================
+   DUMMY TOKEN DATA
+========================================================= */
 
-  const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
+const TOKEN_ROWS = [
+  {
+    id: 1,
+    TokenID: "TKN-10001",
+    TokenType: "Payment Token",
+    CardType: "Visa",
+    TokenNumber: "**** **** **** 4521",
+    Status: "Active",
+    CreatedDate: "2026-06-05",
+  },
+  {
+    id: 2,
+    TokenID: "TKN-10002",
+    TokenType: "Payment Token",
+    CardType: "Mastercard",
+    TokenNumber: "**** **** **** 7832",
+    Status: "Active",
+    CreatedDate: "2026-06-12",
+  },
+  {
+    id: 3,
+    TokenID: "TKN-10003",
+    TokenType: "Network Token",
+    CardType: "Visa",
+    TokenNumber: "**** **** **** 1124",
+    Status: "Inactive",
+    CreatedDate: "2026-06-20",
+  },
+  {
+    id: 4,
+    TokenID: "TKN-10004",
+    TokenType: "Payment Token",
+    CardType: "Mastercard",
+    TokenNumber: "**** **** **** 9921",
+    Status: "Active",
+    CreatedDate: "2026-07-02",
+  },
+  {
+    id: 5,
+    TokenID: "TKN-10005",
+    TokenType: "Network Token",
+    CardType: "Visa",
+    TokenNumber: "**** **** **** 6721",
+    Status: "Active",
+    CreatedDate: "2026-07-10",
+  },
+  {
+    id: 6,
+    TokenID: "TKN-10006",
+    TokenType: "Payment Token",
+    CardType: "Mastercard",
+    TokenNumber: "**** **** **** 3301",
+    Status: "Active",
+    CreatedDate: "2026-07-18",
+  },
+  {
+    id: 7,
+    TokenID: "TKN-10007",
+    TokenType: "Payment Token",
+    CardType: "Visa",
+    TokenNumber: "**** **** **** 8845",
+    Status: "Inactive",
+    CreatedDate: "2026-07-25",
+  },
+  {
+    id: 8,
+    TokenID: "TKN-10008",
+    TokenType: "Network Token",
+    CardType: "Mastercard",
+    TokenNumber: "**** **** **** 2298",
+    Status: "Active",
+    CreatedDate: "2026-08-01",
+  },
+  {
+    id: 9,
+    TokenID: "TKN-10009",
+    TokenType: "Payment Token",
+    CardType: "Visa",
+    TokenNumber: "**** **** **** 5402",
+    Status: "Active",
+    CreatedDate: "2026-08-08",
+  },
+  {
+    id: 10,
+    TokenID: "TKN-10010",
+    TokenType: "Network Token",
+    CardType: "Visa",
+    TokenNumber: "**** **** **** 7632",
+    Status: "Active",
+    CreatedDate: "2026-08-15",
+  },
+  {
+    id: 11,
+    TokenID: "TKN-10011",
+    TokenType: "Payment Token",
+    CardType: "Mastercard",
+    TokenNumber: "**** **** **** 1458",
+    Status: "Active",
+    CreatedDate: "2026-08-21",
+  },
+  {
+    id: 12,
+    TokenID: "TKN-10012",
+    TokenType: "Payment Token",
+    CardType: "Visa",
+    TokenNumber: "**** **** **** 9187",
+    Status: "Inactive",
+    CreatedDate: "2026-08-28",
+  },
+];
+
+/* =========================================================
+   DUMMY TRANSACTION DATA
+========================================================= */
+
+const TX_ROWS = [
+  {
+    id: 1,
+    TokenID: "TKN-10001",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 12500,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-06-06",
+  },
+  {
+    id: 2,
+    TokenID: "TKN-10002",
+    TransactionType: "Purchase",
+    CardType: "Mastercard",
+    Amount: 18900,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-06-08",
+  },
+  {
+    id: 3,
+    TokenID: "TKN-10003",
+    TransactionType: "Refund",
+    CardType: "Visa",
+    Amount: 5400,
+    Status: "Failed",
+    RiskLevel: "Medium",
+    CreatedDate: "2026-06-15",
+  },
+  {
+    id: 4,
+    TokenID: "TKN-10004",
+    TransactionType: "Purchase",
+    CardType: "Mastercard",
+    Amount: 22500,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-07-03",
+  },
+  {
+    id: 5,
+    TokenID: "TKN-10005",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 15600,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-07-05",
+  },
+  {
+    id: 6,
+    TokenID: "TKN-10006",
+    TransactionType: "Refund",
+    CardType: "Mastercard",
+    Amount: 4200,
+    Status: "Success",
+    RiskLevel: "Medium",
+    CreatedDate: "2026-07-11",
+  },
+  {
+    id: 7,
+    TokenID: "TKN-10007",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 31000,
+    Status: "Failed",
+    RiskLevel: "High",
+    CreatedDate: "2026-07-19",
+  },
+  {
+    id: 8,
+    TokenID: "TKN-10008",
+    TransactionType: "Purchase",
+    CardType: "Mastercard",
+    Amount: 27500,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-07-22",
+  },
+  {
+    id: 9,
+    TokenID: "TKN-10009",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 19800,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-07-29",
+  },
+  {
+    id: 10,
+    TokenID: "TKN-10010",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 22400,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-08-02",
+  },
+  {
+    id: 11,
+    TokenID: "TKN-10011",
+    TransactionType: "Refund",
+    CardType: "Mastercard",
+    Amount: 6500,
+    Status: "Success",
+    RiskLevel: "Medium",
+    CreatedDate: "2026-08-05",
+  },
+  {
+    id: 12,
+    TokenID: "TKN-10012",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 34500,
+    Status: "Failed",
+    RiskLevel: "High",
+    CreatedDate: "2026-08-09",
+  },
+  {
+    id: 13,
+    TokenID: "TKN-10001",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 16700,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-08-12",
+  },
+  {
+    id: 14,
+    TokenID: "TKN-10002",
+    TransactionType: "Purchase",
+    CardType: "Mastercard",
+    Amount: 28800,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-08-15",
+  },
+  {
+    id: 15,
+    TokenID: "TKN-10004",
+    TransactionType: "Refund",
+    CardType: "Mastercard",
+    Amount: 7800,
+    Status: "Success",
+    RiskLevel: "Medium",
+    CreatedDate: "2026-08-18",
+  },
+  {
+    id: 16,
+    TokenID: "TKN-10005",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 41200,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-08-21",
+  },
+  {
+    id: 17,
+    TokenID: "TKN-10006",
+    TransactionType: "Purchase",
+    CardType: "Mastercard",
+    Amount: 23500,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-08-23",
+  },
+  {
+    id: 18,
+    TokenID: "TKN-10008",
+    TransactionType: "Purchase",
+    CardType: "Mastercard",
+    Amount: 19200,
+    Status: "Failed",
+    RiskLevel: "High",
+    CreatedDate: "2026-08-25",
+  },
+  {
+    id: 19,
+    TokenID: "TKN-10009",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 26700,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-08-27",
+  },
+  {
+    id: 20,
+    TokenID: "TKN-10010",
+    TransactionType: "Purchase",
+    CardType: "Visa",
+    Amount: 31800,
+    Status: "Success",
+    RiskLevel: "Low",
+    CreatedDate: "2026-08-29",
+  },
+];
+
+/* =========================================================
+   COMPONENT
+========================================================= */
+
+export default function PortfolioReportPage() {
+  const [tokenRows] = useState(TOKEN_ROWS);
+  const [txRows] = useState(TX_ROWS);
+
+  /* =======================================================
+     THEME DETECTION
+  ======================================================= */
+
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains("dark"),
+  );
 
   useEffect(() => {
-    let ignore = false;
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
 
-    const load = async () => {
-      try {
-        setLoading(true);
-        const [merRes, termRes, txRes] = await Promise.all([
-          api.get("/all-merchants"),
-          api.get("/allTerminals"),
-          api.get("/allTransactions"),
-        ]);
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
 
-        if (ignore) return;
-        setMerchantRows(Array.isArray(merRes?.data?.data) ? merRes.data.data : []);
-        setTerminalRows(Array.isArray(termRes?.data?.terminals) ? termRes.data.terminals : []);
-        setTxRows(Array.isArray(txRes?.data?.data) ? txRes.data.data : []);
-      } catch {
-        if (!ignore) {
-          setMerchantRows([]);
-          setTerminalRows([]);
-          setTxRows([]);
-        }
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
-
-    load();
-    return () => {
-      ignore = true;
-    };
+    return () => observer.disconnect();
   }, []);
 
-  const getMerchantActive = useCallback((m) => {
-    const raw = m?.IsActive ?? m?.isActive ?? m?.Active ?? m?.active ?? null;
-    if (raw !== null && raw !== undefined) {
-      if (typeof raw === "boolean") return raw;
-      if (typeof raw === "number") return raw === 1;
-      const s = String(raw).trim().toLowerCase();
-      if (s === "1" || s === "true" || s === "yes") return true;
-      if (s === "0" || s === "false" || s === "no") return false;
-    }
-
-    const status = String(m?.Status ?? m?.status ?? "").trim().toLowerCase();
-    if (status === "active") return true;
-    if (status === "inactive") return false;
-    return Boolean(status);
-  }, []);
-
-  const channelValue = useCallback((row) => {
-    const raw =
-      row?.Channel ??
-      row?.channel ??
-      row?.PaymentChannel ??
-      row?.paymentChannel ??
-      row?.CardScheme ??
-      row?.cardScheme ??
-      "";
-    return String(raw ?? "").trim();
-  }, []);
+  /* =======================================================
+     MONTH DATA
+  ======================================================= */
 
   const monthKeys = useMemo(() => {
-    const now = new Date();
-    const keys = [];
-    for (let i = 2; i >= 0; i -= 1) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      keys.push(monthKey(d));
-    }
-    return keys;
-  }, []);
+    const keys = new Set();
 
-  const monthLabels = useMemo(() => monthKeys.map(formatMonthLabel), [monthKeys]);
-
-  const monthRange = useMemo(() => {
-    const now = new Date();
-    const end = new Date(now);
-    end.setHours(23, 59, 59, 999);
-    const start = new Date(now.getFullYear(), now.getMonth() - 2, 1);
-    start.setHours(0, 0, 0, 0);
-    return { start, end };
-  }, []);
-
-  const monthFilteredTx = useMemo(() => {
-    const { start, end } = monthRange;
-    return (txRows ?? []).filter((t) => {
-      const createdAt = getCreatedAt(t);
-      if (!createdAt) return false;
-      const d = new Date(createdAt);
-      if (Number.isNaN(d.getTime())) return false;
-      return d >= start && d <= end;
-    });
-  }, [monthRange, txRows]);
-
-  const merchantNameById = useMemo(() => {
-    const map = new Map();
-    (merchantRows ?? []).forEach((m) => {
-      const mid = String(m?.MID ?? m?.MerchantID ?? "").trim();
-      if (!mid) return;
-      map.set(mid, String(m?.MerchantName ?? m?.BusinessName ?? mid).trim());
-    });
-    return map;
-  }, [merchantRows]);
-
-  const merchantCityById = useMemo(() => {
-    const map = new Map();
-    (merchantRows ?? []).forEach((m) => {
-      const mid = String(m?.MID ?? m?.MerchantID ?? "").trim();
-      if (!mid) return;
-      const city = String(m?.City ?? m?.city ?? m?.MerchantCity ?? m?.merchantCity ?? "").trim();
-      if (city) map.set(mid, city);
-    });
-    return map;
-  }, [merchantRows]);
-
-  const terminalCountByMerchant = useMemo(() => {
-    const map = new Map();
-    (terminalRows ?? []).forEach((t) => {
-      const mid = String(t?.MerchantID ?? t?.MID ?? t?.merchantId ?? "").trim();
-      if (!mid) return;
-      map.set(mid, (map.get(mid) ?? 0) + 1);
-    });
-    return map;
-  }, [terminalRows]);
-
-  const merchantPortfolio = useMemo(() => {
-    const counts = new Map();
-    const volumes = new Map();
-
-    monthFilteredTx.forEach((t) => {
-      const mid = String(t?.MerchantID ?? t?.MID ?? "").trim();
-      if (!mid) return;
-      counts.set(mid, (counts.get(mid) ?? 0) + 1);
-      volumes.set(mid, (volumes.get(mid) ?? 0) + parseAmount(t?.Amount));
+    txRows.forEach((row) => {
+      keys.add(monthKey(row.CreatedDate));
     });
 
-    const merchantIds = new Set(
-      (merchantRows ?? [])
-        .map((m) => String(m?.MID ?? m?.MerchantID ?? "").trim())
-        .filter(Boolean)
-    );
-
-    if (merchantIds.size === 0) {
-      for (const mid of counts.keys()) merchantIds.add(mid);
-    }
-
-    const rows = [];
-    for (const mid of merchantIds) {
-      const count = counts.get(mid) ?? 0;
-      const volume = volumes.get(mid) ?? 0;
-      rows.push({
-        mid,
-        name: merchantNameById.get(mid) ?? mid,
-        txns: count,
-        volume,
-      });
-    }
-    rows.sort((a, b) => (b.volume ?? 0) - (a.volume ?? 0));
-
-    const segments = { high: 0, medium: 0, low: 0, inactive: 0 };
-    rows.forEach((m) => {
-      const c = Number(m.txns ?? 0);
-      if (c >= 50) segments.high += 1;
-      else if (c >= 16) segments.medium += 1;
-      else if (c >= 1) segments.low += 1;
-      else segments.inactive += 1;
-    });
-
-    const totalMerchants = rows.length;
-    const pct = (n) => (totalMerchants > 0 ? (n / totalMerchants) * 100 : 0);
-
-    return {
-      rows,
-      top10: rows.slice(0, 10),
-      segments,
-      totalMerchants,
-      pct: {
-        high: pct(segments.high),
-        medium: pct(segments.medium),
-        low: pct(segments.low),
-        inactive: pct(segments.inactive),
-      },
-    };
-  }, [merchantNameById, merchantRows, monthFilteredTx]);
-
-  const monthlySeries = useMemo(() => {
-    const counts = new Map(monthKeys.map((k) => [k, 0]));
-    const volumes = new Map(monthKeys.map((k) => [k, 0]));
-
-    monthFilteredTx.forEach((t) => {
-      const createdAt = getCreatedAt(t);
-      if (!createdAt) return;
-      const d = new Date(createdAt);
-      if (Number.isNaN(d.getTime())) return;
-      const k = monthKey(d);
-      if (!counts.has(k)) return;
-      counts.set(k, (counts.get(k) ?? 0) + 1);
-      volumes.set(k, (volumes.get(k) ?? 0) + parseAmount(t?.Amount));
-    });
-
-    return {
-      txns: monthKeys.map((k) => counts.get(k) ?? 0),
-      volume: monthKeys.map((k) => volumes.get(k) ?? 0),
-    };
-  }, [monthFilteredTx, monthKeys]);
-
-  const channelMix = useMemo(() => {
-    const buckets = new Map();
-    monthFilteredTx.forEach((t) => {
-      const c = channelValue(t) || "Unknown";
-      buckets.set(c, (buckets.get(c) ?? 0) + 1);
-    });
-
-    const labels = Array.from(buckets.keys()).sort((a, b) => a.localeCompare(b));
-    const data = labels.map((l) => buckets.get(l) ?? 0);
-    return { labels, data };
-  }, [channelValue, monthFilteredTx]);
-
-  const qrMerchantCount = useMemo(() => {
-    const qrMids = new Set();
-    monthFilteredTx.forEach((t) => {
-      const c = channelValue(t).toLowerCase();
-      const isQr = c.includes("qr");
-      if (!isQr) return;
-      const mid = String(t?.MerchantID ?? t?.MID ?? "").trim();
-      if (mid) qrMids.add(mid);
-    });
-    return qrMids.size;
-  }, [channelValue, monthFilteredTx]);
-
-  const merchantPerformanceRows = useMemo(() => {
-    const now = new Date();
-    const thisMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    thisMonthStart.setHours(0, 0, 0, 0);
-    const thisMonthEnd = new Date(now);
-    thisMonthEnd.setHours(23, 59, 59, 999);
-
-    const monthTxnCounts = new Map();
-    const threeMoVolume = new Map();
-    const threeMoTxnCounts = new Map();
-    const successCounts = new Map();
-    const totalCounts = new Map();
-    const qrTxnCounts = new Map();
-
-    monthFilteredTx.forEach((t) => {
-      const mid = String(t?.MerchantID ?? t?.MID ?? "").trim();
-      if (!mid) return;
-
-      const amount = parseAmount(t?.Amount);
-      threeMoVolume.set(mid, (threeMoVolume.get(mid) ?? 0) + amount);
-      threeMoTxnCounts.set(mid, (threeMoTxnCounts.get(mid) ?? 0) + 1);
-
-      totalCounts.set(mid, (totalCounts.get(mid) ?? 0) + 1);
-      if (isTxnSuccess(t)) successCounts.set(mid, (successCounts.get(mid) ?? 0) + 1);
-
-      const ch = channelValue(t).toLowerCase();
-      if (ch.includes("qr")) qrTxnCounts.set(mid, (qrTxnCounts.get(mid) ?? 0) + 1);
-    });
-
-    (txRows ?? []).forEach((t) => {
-      const mid = String(t?.MerchantID ?? t?.MID ?? "").trim();
-      if (!mid) return;
-      const createdAt = getCreatedAt(t);
-      if (!createdAt) return;
-      const d = new Date(createdAt);
-      if (Number.isNaN(d.getTime())) return;
-      if (d < thisMonthStart || d > thisMonthEnd) return;
-      monthTxnCounts.set(mid, (monthTxnCounts.get(mid) ?? 0) + 1);
-    });
-
-    const mids = new Set(
-      (merchantRows ?? [])
-        .map((m) => String(m?.MID ?? m?.MerchantID ?? "").trim())
-        .filter(Boolean)
-    );
-    if (mids.size === 0) {
-      for (const mid of threeMoVolume.keys()) mids.add(mid);
-    }
-
-    const rows = [];
-    for (const mid of mids) {
-      const name = merchantNameById.get(mid) ?? mid;
-      const city = merchantCityById.get(mid) ?? "-";
-      const terminals = terminalCountByMerchant.get(mid) ?? 0;
-      const qr = qrTxnCounts.get(mid) ?? 0;
-      const monthTxns = monthTxnCounts.get(mid) ?? 0;
-      const vol3 = threeMoVolume.get(mid) ?? 0;
-      const tx3 = threeMoTxnCounts.get(mid) ?? 0;
-      const avg = tx3 > 0 ? vol3 / tx3 : 0;
-      const total = totalCounts.get(mid) ?? 0;
-      const succ = successCounts.get(mid) ?? 0;
-      const successPct = total > 0 ? (succ / total) * 100 : 0;
-      const active = (merchantRows ?? []).some((m) => {
-        const mMid = String(m?.MID ?? m?.MerchantID ?? "").trim();
-        if (!mMid || mMid !== mid) return false;
-        return getMerchantActive(m);
-      });
-
-      rows.push({
-        mid,
-        merchant: name,
-        city,
-        terminals,
-        qr,
-        monthTxns,
-        vol3,
-        avg,
-        successPct,
-        active,
-      });
-    }
-
-    rows.sort((a, b) => (b.vol3 ?? 0) - (a.vol3 ?? 0));
-    return rows;
-  }, [channelValue, getMerchantActive, merchantCityById, merchantNameById, merchantRows, monthFilteredTx, terminalCountByMerchant, txRows]);
-
-  const monthTxnHeader = useMemo(() => {
-    const now = new Date();
-    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    return `${monthNames[now.getMonth()] ?? "This"} Txns`;
-  }, []);
-
-  const monthlyTarget = 50;
-
-  const underperformingRows = useMemo(() => {
-    const rows = (merchantPerformanceRows ?? [])
-      .map((m) => {
-        const txns = Number(m?.monthTxns ?? 0);
-        const pct = monthlyTarget > 0 ? (txns / monthlyTarget) * 100 : 0;
-        let risk = "Low";
-        if (pct < 40) risk = "Critical";
-        else if (pct < 60) risk = "High";
-        else if (pct < 90) risk = "Medium";
-
-        return {
-          mid: m?.mid,
-          merchant: m?.merchant,
-          txns,
-          pct,
-          risk,
-        };
-      })
-      .sort((a, b) => (a.txns ?? 0) - (b.txns ?? 0));
-
-    return rows.slice(0, 6);
-  }, [merchantPerformanceRows]);
-
-  const monthlyAchievementRows = useMemo(() => {
-    const rows = (merchantPerformanceRows ?? [])
-      .map((m) => {
-        const txns = Number(m?.monthTxns ?? 0);
-        const pct = monthlyTarget > 0 ? (txns / monthlyTarget) * 100 : 0;
-        return {
-          mid: m?.mid,
-          merchant: m?.merchant,
-          txns,
-          pct,
-        };
-      })
-      .sort((a, b) => (b.txns ?? 0) - (a.txns ?? 0));
-
-    return rows.slice(0, 5);
-  }, [merchantPerformanceRows]);
-
-  const riskPill = useCallback((risk) => {
-    const v = String(risk ?? "").trim().toLowerCase();
-    if (v === "critical") {
-      return (
-        <span className="inline-flex items-center gap-2 rounded-full bg-rose-500/15 px-3 py-1 text-xs font-semibold text-rose-200">
-          <span className="h-2 w-2 rounded-full bg-rose-400" />
-          Critical
-        </span>
-      );
-    }
-    if (v === "high") {
-      return (
-        <span className="inline-flex items-center gap-2 rounded-full bg-amber-500/15 px-3 py-1 text-xs font-semibold text-amber-200">
-          <span className="h-2 w-2 rounded-full bg-amber-400" />
-          High
-        </span>
-      );
-    }
-    if (v === "medium") {
-      return (
-        <span className="inline-flex items-center gap-2 rounded-full bg-cyan-500/15 px-3 py-1 text-xs font-semibold text-cyan-200">
-          <span className="h-2 w-2 rounded-full bg-cyan-400" />
-          Medium
-        </span>
-      );
-    }
-    return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200">
-        <span className="h-2 w-2 rounded-full bg-emerald-400" />
-        Low
-      </span>
-    );
-  }, []);
-
-  const thisMonthVolume = useMemo(() => {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth(), 1);
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(now);
-    end.setHours(23, 59, 59, 999);
-
-    let volume = 0;
-    (txRows ?? []).forEach((t) => {
-      const createdAt = getCreatedAt(t);
-      if (!createdAt) return;
-      const d = new Date(createdAt);
-      if (Number.isNaN(d.getTime())) return;
-      if (d < start || d > end) return;
-      volume += parseAmount(t?.Amount);
-    });
-
-    return volume;
+    return Array.from(keys).sort();
   }, [txRows]);
 
-  const stats = useMemo(() => {
-    const totalMerchants = merchantRows.length;
-    const activeMerchants = (merchantRows ?? []).filter(getMerchantActive).length;
+  const monthLabels = useMemo(
+    () => monthKeys.map((key) => formatMonthLabel(key)),
+    [monthKeys],
+  );
 
-    const totalTerminals = terminalRows.length;
+  /* =======================================================
+     LAST 3 MONTHS
+  ======================================================= */
+
+  const lastThreeMonthKeys = useMemo(() => monthKeys.slice(-3), [monthKeys]);
+
+  const filteredTxRows = useMemo(
+    () =>
+      txRows.filter((row) =>
+        lastThreeMonthKeys.includes(monthKey(row.CreatedDate)),
+      ),
+    [txRows, lastThreeMonthKeys],
+  );
+
+  /* =======================================================
+     TOKEN TRANSACTION STATS
+  ======================================================= */
+
+  const tokenPerformanceRows = useMemo(() => {
+    return tokenRows.map((token) => {
+      const transactions = filteredTxRows.filter(
+        (tx) => tx.TokenID === token.TokenID,
+      );
+
+      const successful = transactions.filter((tx) => tx.Status === "Success");
+
+      const failed = transactions.filter((tx) => tx.Status === "Failed");
+
+      const volume = transactions.reduce(
+        (sum, tx) => sum + parseAmount(tx.Amount),
+        0,
+      );
+
+      const successRate =
+        transactions.length > 0
+          ? (successful.length / transactions.length) * 100
+          : 0;
+
+      return {
+        ...token,
+        Transactions: transactions.length,
+        Successful: successful.length,
+        Failed: failed.length,
+        Volume: volume,
+        SuccessRate: successRate,
+      };
+    });
+  }, [tokenRows, filteredTxRows]);
+
+  /* =======================================================
+     TOKEN DISTRIBUTION
+  ======================================================= */
+
+  const tokenDistribution = useMemo(() => {
+    const counts = {};
+
+    tokenRows.forEach((token) => {
+      counts[token.TokenType] = (counts[token.TokenType] || 0) + 1;
+    });
+
+    return counts;
+  }, [tokenRows]);
+
+  /* =======================================================
+     MONTHLY TRANSACTION SERIES
+  ======================================================= */
+
+  const monthlyTransactionSeries = useMemo(() => {
+    return lastThreeMonthKeys.map((key) => {
+      const rows = filteredTxRows.filter(
+        (tx) => monthKey(tx.CreatedDate) === key,
+      );
+
+      const volume = rows.reduce((sum, tx) => sum + parseAmount(tx.Amount), 0);
+
+      const successful = rows.filter((tx) => tx.Status === "Success").length;
+
+      const failed = rows.filter((tx) => tx.Status === "Failed").length;
+
+      return {
+        key,
+        label: formatMonthLabel(key),
+        volume,
+        transactions: rows.length,
+        successful,
+        failed,
+      };
+    });
+  }, [filteredTxRows, lastThreeMonthKeys]);
+
+  /* =======================================================
+     TRANSACTION TYPE MIX
+  ======================================================= */
+
+  const transactionTypeMix = useMemo(() => {
+    const result = {};
+
+    filteredTxRows.forEach((tx) => {
+      result[tx.TransactionType] = (result[tx.TransactionType] || 0) + 1;
+    });
+
+    return result;
+  }, [filteredTxRows]);
+
+  /* =======================================================
+     CARD TYPE MIX
+  ======================================================= */
+
+  const cardTypeMix = useMemo(() => {
+    const result = {};
+
+    filteredTxRows.forEach((tx) => {
+      result[tx.CardType] = (result[tx.CardType] || 0) + 1;
+    });
+
+    return result;
+  }, [filteredTxRows]);
+
+  /* =======================================================
+     SUMMARY STATS
+  ======================================================= */
+
+  const stats = useMemo(() => {
+    const totalTokens = tokenRows.length;
+
+    const activeTokens = tokenRows.filter(
+      (token) => token.Status === "Active",
+    ).length;
+
+    const totalTransactions = filteredTxRows.length;
+
+    const successfulTransactions = filteredTxRows.filter(
+      (tx) => tx.Status === "Success",
+    ).length;
+
+    const failedTransactions = filteredTxRows.filter(
+      (tx) => tx.Status === "Failed",
+    ).length;
+
+    const totalVolume = filteredTxRows.reduce(
+      (sum, tx) => sum + parseAmount(tx.Amount),
+      0,
+    );
+
+    const successRate =
+      totalTransactions > 0
+        ? (successfulTransactions / totalTransactions) * 100
+        : 0;
 
     return {
-      totalMerchants,
-      activeMerchants,
-      totalTerminals,
-      qrMerchants: qrMerchantCount,
-      thisMonthVolume,
+      totalTokens,
+      activeTokens,
+      totalTransactions,
+      successfulTransactions,
+      failedTransactions,
+      totalVolume,
+      successRate,
     };
-  }, [getMerchantActive, merchantRows, qrMerchantCount, terminalRows.length, thisMonthVolume]);
+  }, [tokenRows, filteredTxRows]);
+
+  /* =======================================================
+     CHART COLORS
+  ======================================================= */
+
+  const chartTextColor = isDark ? "#cbd5e1" : "#475569";
+  const chartMutedColor = isDark ? "#94a3b8" : "#64748b";
+  const chartGridColor = isDark
+    ? "rgba(148,163,184,0.12)"
+    : "rgba(100,116,139,0.15)";
+
+  const tooltipBackground = isDark
+    ? "rgba(15,23,42,0.96)"
+    : "rgba(255,255,255,0.98)";
+
+  const tooltipTextColor = isDark ? "#f8fafc" : "#0f172a";
+
+  /* =======================================================
+     COMBO CHART
+  ======================================================= */
 
   const comboChartData = useMemo(
     () => ({
-      labels: monthLabels,
+      labels: monthLabels.slice(-3),
       datasets: [
         {
-          type: "line",
-          label: "Txns",
-          data: monthlySeries.txns,
-          tension: 0.35,
-          borderColor: "rgba(34,211,238,0.9)",
-          backgroundColor: "rgba(34,211,238,0.12)",
-          pointRadius: 3,
-          pointHoverRadius: 4,
+          type: "bar",
+          label: "Transaction Volume",
+          data: monthlyTransactionSeries.map((item) => item.volume),
+          backgroundColor: "rgba(139,92,246,0.45)",
+          borderColor: "#8b5cf6",
+          borderWidth: 1,
+          borderRadius: 8,
           yAxisID: "y",
         },
         {
           type: "line",
-          label: "Volume (M)",
-          data: monthlySeries.volume.map((v) => v / 1_000_000),
-          tension: 0.35,
-          borderColor: "rgba(168,85,247,0.9)",
-          backgroundColor: "rgba(168,85,247,0.12)",
-          pointRadius: 3,
-          pointHoverRadius: 4,
+          label: "Successful",
+          data: monthlyTransactionSeries.map((item) => item.successful),
+          borderColor: "#10b981",
+          backgroundColor: "#10b981",
+          tension: 0.4,
+          fill: false,
+          pointRadius: 4,
+          pointHoverRadius: 6,
+          yAxisID: "y1",
+        },
+        {
+          type: "line",
+          label: "Failed",
+          data: monthlyTransactionSeries.map((item) => item.failed),
+          borderColor: "#f43f5e",
+          backgroundColor: "#f43f5e",
+          tension: 0.4,
+          fill: false,
+          pointRadius: 4,
+          pointHoverRadius: 6,
           yAxisID: "y1",
         },
       ],
     }),
-    [monthLabels, monthlySeries.txns, monthlySeries.volume]
+    [monthLabels, monthlyTransactionSeries],
   );
 
-  const channelMixData = useMemo(
-    () => ({
-      labels: channelMix.labels,
-      datasets: [
-        {
-          data: channelMix.data,
-          backgroundColor: [
-            "rgba(14, 165, 233, 0.85)",
-            "rgba(34, 197, 94, 0.85)",
-            "rgba(168, 85, 247, 0.85)",
-            "rgba(244, 63, 94, 0.85)",
-            "rgba(148, 163, 184, 0.6)",
-          ],
-          borderColor: "rgba(2, 6, 23, 0.6)",
-          borderWidth: 2,
-          cutout: "72%",
-        },
-      ],
-    }),
-    [channelMix.data, channelMix.labels]
-  );
-
-  const topMerchantsBarData = useMemo(
-    () => ({
-      labels: merchantPortfolio.top10.map((m) => m.name),
-      datasets: [
-        {
-          label: "Volume",
-          data: merchantPortfolio.top10.map((m) => Math.round(m.volume ?? 0)),
-          backgroundColor: merchantPortfolio.top10.map((_, idx) => {
-            const colors = [
-              "rgba(34, 211, 238, 0.85)",
-              "rgba(14, 165, 233, 0.85)",
-              "rgba(99, 102, 241, 0.85)",
-              "rgba(168, 85, 247, 0.85)",
-              "rgba(244, 63, 94, 0.85)",
-            ];
-            return colors[idx % colors.length];
-          }),
-          borderRadius: 12,
-          borderSkipped: false,
-          maxBarThickness: 26,
-        },
-      ],
-    }),
-    [merchantPortfolio.top10]
-  );
-
-  const topMerchantsBarOptions = useMemo(
+  const comboChartOptions = useMemo(
     () => ({
       maintainAspectRatio: false,
-      indexAxis: "y",
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          titleColor: "rgba(255,255,255,0.95)",
-          bodyColor: "rgba(255,255,255,0.9)",
-        },
+      interaction: {
+        mode: "index",
+        intersect: false,
       },
-      layout: { padding: { left: 6, right: 8, top: 4, bottom: 0 } },
-      scales: {
-        x: {
-          ticks: {
-            color: "rgba(255,255,255,0.6)",
-            maxRotation: 20,
-            minRotation: 20,
-            callback: (value) => {
-              const n = Number(value);
-              if (!Number.isFinite(n)) return value;
-              if (n >= 1_000_000) return `PKR ${(n / 1_000_000).toFixed(1)}M`;
-              if (n >= 1_000) return `PKR ${(n / 1_000).toFixed(0)}K`;
-              return `PKR ${n}`;
-            },
-          },
-          grid: { color: "rgba(255,255,255,0.07)" },
-        },
-        y: {
-          ticks: {
-            color: "rgba(255,255,255,0.55)",
-            callback: function (value) {
-              const label = this.getLabelForValue(value);
-              if (typeof label !== "string") return label;
-              const t = label.trim();
-              return t.length > 14 ? `${t.slice(0, 14)}…` : t;
-            },
-          },
-          grid: { display: false },
-        },
-      },
-    }),
-    []
-  );
-
-  const portfolioDonutData = useMemo(
-    () => ({
-      labels: ["High (50+)", "Medium", "Low (≤15)", "Inactive"],
-      datasets: [
-        {
-          data: [
-            merchantPortfolio.segments.high,
-            merchantPortfolio.segments.medium,
-            merchantPortfolio.segments.low,
-            merchantPortfolio.segments.inactive,
-          ],
-          backgroundColor: [
-            "rgba(34, 197, 94, 0.9)",
-            "rgba(34, 211, 238, 0.9)",
-            "rgba(245, 158, 11, 0.9)",
-            "rgba(244, 63, 94, 0.9)",
-          ],
-          borderColor: "rgba(2, 6, 23, 0.6)",
-          borderWidth: 2,
-          cutout: "72%",
-        },
-      ],
-    }),
-    [merchantPortfolio.segments.high, merchantPortfolio.segments.inactive, merchantPortfolio.segments.low, merchantPortfolio.segments.medium]
-  );
-
-  const chartOptions = useMemo(
-    () => ({
-      maintainAspectRatio: false,
       plugins: {
         legend: {
           labels: {
-            color: "rgba(255,255,255,0.75)",
-            boxWidth: 10,
-            boxHeight: 10,
+            color: chartTextColor,
+            usePointStyle: true,
+            padding: 18,
           },
         },
         tooltip: {
-          titleColor: "rgba(255,255,255,0.95)",
-          bodyColor: "rgba(255,255,255,0.9)",
+          backgroundColor: tooltipBackground,
+          titleColor: tooltipTextColor,
+          bodyColor: tooltipTextColor,
+          borderColor: isDark
+            ? "rgba(148,163,184,0.2)"
+            : "rgba(100,116,139,0.2)",
+          borderWidth: 1,
+          padding: 12,
         },
       },
       scales: {
         x: {
-          ticks: { color: "rgba(255,255,255,0.6)", maxRotation: 0, autoSkip: true },
-          grid: { color: "rgba(255,255,255,0.06)" },
+          ticks: {
+            color: chartMutedColor,
+          },
+          grid: {
+            color: chartGridColor,
+            drawBorder: false,
+          },
         },
         y: {
-          ticks: { color: "rgba(255,255,255,0.6)" },
-          grid: { color: "rgba(255,255,255,0.06)" },
+          beginAtZero: true,
+          position: "left",
+          ticks: {
+            color: chartMutedColor,
+            callback: (value) =>
+              new Intl.NumberFormat("en-US", {
+                notation: "compact",
+                maximumFractionDigits: 1,
+              }).format(value),
+          },
+          grid: {
+            color: chartGridColor,
+            drawBorder: false,
+          },
         },
         y1: {
+          beginAtZero: true,
           position: "right",
-          ticks: { color: "rgba(255,255,255,0.6)" },
-          grid: { drawOnChartArea: false },
+          ticks: {
+            color: chartMutedColor,
+            precision: 0,
+          },
+          grid: {
+            drawOnChartArea: false,
+          },
         },
       },
     }),
-    []
+    [
+      chartTextColor,
+      chartMutedColor,
+      chartGridColor,
+      tooltipBackground,
+      tooltipTextColor,
+      isDark,
+    ],
   );
+
+  /* =======================================================
+     TOP TOKEN BAR
+  ======================================================= */
+
+  const topTokenBarData = useMemo(() => {
+    const sorted = [...tokenPerformanceRows]
+      .sort((a, b) => b.Volume - a.Volume)
+      .slice(0, 8);
+
+    return {
+      labels: sorted.map((token) => token.TokenID),
+      datasets: [
+        {
+          label: "Volume",
+          data: sorted.map((token) => token.Volume),
+          backgroundColor: "rgba(139,92,246,0.65)",
+          borderColor: "#8b5cf6",
+          borderWidth: 1,
+          borderRadius: 7,
+        },
+      ],
+    };
+  }, [tokenPerformanceRows]);
+
+  const topTokenBarOptions = useMemo(
+    () => ({
+      indexAxis: "y",
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false,
+        },
+        tooltip: {
+          backgroundColor: tooltipBackground,
+          titleColor: tooltipTextColor,
+          bodyColor: tooltipTextColor,
+          borderColor: isDark
+            ? "rgba(148,163,184,0.2)"
+            : "rgba(100,116,139,0.2)",
+          borderWidth: 1,
+          padding: 12,
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            color: chartMutedColor,
+            callback: (value) =>
+              new Intl.NumberFormat("en-US", {
+                notation: "compact",
+                maximumFractionDigits: 1,
+              }).format(value),
+          },
+          grid: {
+            color: chartGridColor,
+            drawBorder: false,
+          },
+        },
+        y: {
+          ticks: {
+            color: chartMutedColor,
+          },
+          grid: {
+            display: false,
+          },
+        },
+      },
+    }),
+    [
+      tooltipBackground,
+      tooltipTextColor,
+      chartMutedColor,
+      chartGridColor,
+      isDark,
+    ],
+  );
+
+  /* =======================================================
+     TOKEN DONUT
+  ======================================================= */
+
+  const tokenDonutData = useMemo(
+    () => ({
+      labels: Object.keys(tokenDistribution),
+      datasets: [
+        {
+          data: Object.values(tokenDistribution),
+          backgroundColor: ["#06b6d4", "#8b5cf6", "#10b981"],
+          borderColor: isDark ? "#0f172a" : "#ffffff",
+          borderWidth: 3,
+        },
+      ],
+    }),
+    [tokenDistribution, isDark],
+  );
+
+  /* =======================================================
+     TRANSACTION TYPE DONUT
+  ======================================================= */
+
+  const transactionTypeData = useMemo(
+    () => ({
+      labels: Object.keys(transactionTypeMix),
+      datasets: [
+        {
+          data: Object.values(transactionTypeMix),
+          backgroundColor: ["#06b6d4", "#f59e0b", "#8b5cf6", "#10b981"],
+          borderColor: isDark ? "#0f172a" : "#ffffff",
+          borderWidth: 3,
+        },
+      ],
+    }),
+    [transactionTypeMix, isDark],
+  );
+
+  /* =======================================================
+     CARD TYPE DONUT
+  ======================================================= */
+
+  const cardTypeData = useMemo(
+    () => ({
+      labels: Object.keys(cardTypeMix),
+      datasets: [
+        {
+          data: Object.values(cardTypeMix),
+          backgroundColor: ["#8b5cf6", "#06b6d4"],
+          borderColor: isDark ? "#0f172a" : "#ffffff",
+          borderWidth: 3,
+        },
+      ],
+    }),
+    [cardTypeMix, isDark],
+  );
+
+  /* =======================================================
+     DONUT OPTIONS
+  ======================================================= */
 
   const donutOptions = useMemo(
     () => ({
       maintainAspectRatio: false,
+      cutout: "68%",
       plugins: {
         legend: {
           position: "bottom",
           labels: {
-            color: "rgba(255,255,255,0.75)",
-            boxWidth: 10,
-            boxHeight: 10,
+            color: chartTextColor,
+            usePointStyle: true,
+            padding: 18,
           },
         },
+        tooltip: {
+          backgroundColor: tooltipBackground,
+          titleColor: tooltipTextColor,
+          bodyColor: tooltipTextColor,
+          borderColor: isDark
+            ? "rgba(148,163,184,0.2)"
+            : "rgba(100,116,139,0.2)",
+          borderWidth: 1,
+          padding: 12,
+        },
       },
-      layout: { padding: { bottom: 18 } },
     }),
-    []
+    [chartTextColor, tooltipBackground, tooltipTextColor, isDark],
   );
 
-  const handleExport = useCallback(() => {
-    const now = new Date();
-    const yyyy = now.getFullYear();
-    const mm = String(now.getMonth() + 1).padStart(2, "0");
-    const dd = String(now.getDate()).padStart(2, "0");
-
-    const lines = [];
-    lines.push(["Metric", "Value"].map(csvEscape).join(","));
-    lines.push(["Total Merchants", stats.totalMerchants].map(csvEscape).join(","));
-    lines.push(["Active Merchants", stats.activeMerchants].map(csvEscape).join(","));
-    lines.push(["Total Terminals", stats.totalTerminals].map(csvEscape).join(","));
-    lines.push(["QR Merchants", stats.qrMerchants].map(csvEscape).join(","));
-    lines.push(["This Month Volume", stats.thisMonthVolume].map(csvEscape).join(","));
-
-    lines.push("");
-    lines.push(["Month", "Txns", "Volume"].map(csvEscape).join(","));
-    monthKeys.forEach((k, idx) => {
-      lines.push(
-        [
-          monthLabels[idx],
-          monthlySeries.txns[idx] ?? 0,
-          Math.round(monthlySeries.volume[idx] ?? 0),
-        ]
-          .map(csvEscape)
-          .join(",")
-      );
-    });
-
-    lines.push("");
-    lines.push(["Channel", "Txns"].map(csvEscape).join(","));
-    channelMix.labels.forEach((l, idx) => {
-      lines.push([l, channelMix.data[idx] ?? 0].map(csvEscape).join(","));
-    });
-
-    const csv = lines.join("\n");
-    const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `portfolio-report_${yyyy}-${mm}-${dd}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-  }, [channelMix.data, channelMix.labels, monthKeys, monthLabels, monthlySeries.txns, monthlySeries.volume, stats]);
+  /* =======================================================
+     FORMATTERS
+  ======================================================= */
 
   const moneyCompact = useCallback((value) => {
-    const n = Number(value ?? 0);
-    if (!Number.isFinite(n)) return "PKR 0";
-    if (n >= 1_000_000_000) return `PKR ${(n / 1_000_000_000).toFixed(1)}B`;
-    if (n >= 1_000_000) return `PKR ${(n / 1_000_000).toFixed(1)}M`;
-    if (n >= 1_000) return `PKR ${(n / 1_000).toFixed(1)}K`;
-    return `PKR ${Math.round(n).toLocaleString()}`;
+    const amount = parseAmount(value);
+
+    return new Intl.NumberFormat("en-US", {
+      notation: "compact",
+      maximumFractionDigits: 1,
+    }).format(amount);
   }, []);
 
-  const statusPill = useCallback((row) => {
-    const active = Boolean(row?.active);
+  const statusPill = useCallback((status) => {
+    if (status === "Active") {
+      return (
+        <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          {status}
+        </span>
+      );
+    }
+
     return (
-      <span
-        className={
-          active
-            ? "inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200"
-            : "inline-flex items-center gap-2 rounded-full bg-slate-500/15 px-3 py-1 text-xs font-semibold text-slate-200"
-        }
-      >
-        <span className={active ? "h-2 w-2 rounded-full bg-emerald-400" : "h-2 w-2 rounded-full bg-slate-400"} />
-        {active ? "Active" : "Inactive"}
+      <span className="inline-flex items-center rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground">
+        {status}
       </span>
     );
   }, []);
 
+  const transactionStatusPill = useCallback((status) => {
+    if (status === "Success") {
+      return (
+        <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          {status}
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center rounded-full bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-600 dark:text-rose-400">
+        {status}
+      </span>
+    );
+  }, []);
+
+  const riskPill = useCallback((risk) => {
+    if (risk === "Low") {
+      return (
+        <span className="inline-flex items-center rounded-full bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+          {risk}
+        </span>
+      );
+    }
+
+    if (risk === "Medium") {
+      return (
+        <span className="inline-flex items-center rounded-full bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-600 dark:text-amber-400">
+          {risk}
+        </span>
+      );
+    }
+
+    return (
+      <span className="inline-flex items-center rounded-full bg-rose-500/10 px-2.5 py-1 text-xs font-medium text-rose-600 dark:text-rose-400">
+        {risk}
+      </span>
+    );
+  }, []);
+
+  /* =======================================================
+     CSV EXPORT
+  ======================================================= */
+
+  const exportCSV = useCallback(() => {
+    const headers = [
+      "Token ID",
+      "Token Type",
+      "Card Type",
+      "Token Number",
+      "Status",
+      "Created Date",
+      "Transactions",
+      "Successful",
+      "Failed",
+      "Volume",
+      "Success Rate",
+    ];
+
+    const rows = tokenPerformanceRows.map((row) => [
+      row.TokenID,
+      row.TokenType,
+      row.CardType,
+      row.TokenNumber,
+      row.Status,
+      row.CreatedDate,
+      row.Transactions,
+      row.Successful,
+      row.Failed,
+      row.Volume,
+      `${row.SuccessRate.toFixed(1)}%`,
+    ]);
+
+    const csv = [
+      headers.map(csvEscape).join(","),
+      ...rows.map((row) => row.map(csvEscape).join(",")),
+    ].join("\n");
+
+    const blob = new Blob([csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+
+    link.href = url;
+    link.download = "portfolio-report.csv";
+    link.click();
+
+    URL.revokeObjectURL(url);
+  }, [tokenPerformanceRows]);
+
+  /* =======================================================
+     TABLE COLUMNS
+  ======================================================= */
+
+  const tokenColumns = useMemo(
+    () => [
+      {
+        field: "TokenID",
+        header: "Token ID",
+      },
+      {
+        field: "TokenType",
+        header: "Token Type",
+      },
+      {
+        field: "CardType",
+        header: "Card Type",
+      },
+      {
+        field: "TokenNumber",
+        header: "Token Number",
+      },
+      {
+        field: "Status",
+        header: "Status",
+        body: (row) => statusPill(row.Status),
+      },
+      {
+        field: "CreatedDate",
+        header: "Created Date",
+        body: (row) => (
+          <span className="text-muted-foreground">{row.CreatedDate}</span>
+        ),
+      },
+    ],
+    [statusPill],
+  );
+
+  const transactionColumns = useMemo(
+    () => [
+      {
+        field: "TokenID",
+        header: "Token ID",
+      },
+      {
+        field: "TransactionType",
+        header: "Type",
+      },
+      {
+        field: "CardType",
+        header: "Card Type",
+      },
+      {
+        field: "Amount",
+        header: "Amount",
+        body: (row) => (
+          <span className="font-semibold text-violet-600 dark:text-violet-400">
+            Rs. {row.Amount.toLocaleString()}
+          </span>
+        ),
+      },
+      {
+        field: "Status",
+        header: "Status",
+        body: (row) => transactionStatusPill(row.Status),
+      },
+      {
+        field: "RiskLevel",
+        header: "Risk",
+        body: (row) => riskPill(row.RiskLevel),
+      },
+      {
+        field: "CreatedDate",
+        header: "Created Date",
+        body: (row) => (
+          <span className="text-muted-foreground">{row.CreatedDate}</span>
+        ),
+      },
+    ],
+    [transactionStatusPill, riskPill],
+  );
+
+  /* =======================================================
+     UI
+  ======================================================= */
+
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-8">
-      <div className="mb-5 text-xs text-slate-500">
-        Reports / <span className="text-sky-400">Portfolio Report</span>
-      </div>
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-300">
+      <div className="space-y-6 p-4 md:p-6 lg:p-8">
+        {/* =================================================
+            HEADER
+        ================================================= */}
 
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-slate-100">Complete Portfolio Report</h1>
-          <p className="mt-1 text-sm text-slate-400">Full picture — merchants, terminals, QR, and financial performance</p>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+              Portfolio Report
+            </h1>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Overview of token portfolio and transaction performance for the
+              last 3 months.
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={exportCSV}
+            className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-4 py-2.5 text-sm font-semibold text-foreground shadow-sm transition-colors duration-200 hover:bg-muted"
+          >
+            Export CSV
+          </button>
         </div>
 
-        <button
-          type="button"
-          onClick={handleExport}
-          disabled={loading}
-          className={joinClasses(
-            "inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-semibold",
-            loading
-              ? "cursor-not-allowed border border-white/10 bg-white/5 text-slate-400"
-              : "border border-cyan-400/40 bg-cyan-400/90 text-slate-950 hover:bg-cyan-300"
-          )}
-        >
-          Export Full Report
-        </button>
-      </div>
+        {/* =================================================
+            STATS
+        ================================================= */}
 
-      <section className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-        <article className="rounded-2xl border border-white/5 bg-[#0b1220]/70 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Merchants</div>
-          <div className="mt-3 text-2xl font-semibold text-cyan-300">{stats.totalMerchants.toLocaleString()}</div>
-        </article>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Tokens
+            </p>
 
-        <article className="rounded-2xl border border-white/5 bg-[#0b1220]/70 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Active Merchants</div>
-          <div className="mt-3 text-2xl font-semibold text-emerald-300">{stats.activeMerchants.toLocaleString()}</div>
-        </article>
+            <div className="mt-3 flex items-end justify-between">
+              <p className="text-2xl font-bold text-foreground">
+                {stats.totalTokens}
+              </p>
 
-        <article className="rounded-2xl border border-white/5 bg-[#0b1220]/70 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total Terminals</div>
-          <div className="mt-3 text-2xl font-semibold text-violet-300">{stats.totalTerminals.toLocaleString()}</div>
-        </article>
-
-        <article className="rounded-2xl border border-white/5 bg-[#0b1220]/70 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">QR Merchants</div>
-          <div className="mt-3 text-2xl font-semibold text-cyan-300">{stats.qrMerchants.toLocaleString()}</div>
-          <div className="mt-1 text-xs text-slate-500">Based on last 3 months</div>
-        </article>
-
-        <article className="rounded-2xl border border-white/5 bg-[#0b1220]/70 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">This Month Volume</div>
-          <div className="mt-3 text-2xl font-semibold text-amber-300">{moneyCompact(stats.thisMonthVolume)}</div>
-        </article>
-      </section>
-
-      <section className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="relative overflow-hidden rounded-2xl border border-white/5 bg-[#0b1220]/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div className="text-sm font-semibold text-slate-100">Total Transaction Volume — 3 Months</div>
-            <div className="mt-4 h-[260px]">
-              <Chart type="line" data={comboChartData} options={chartOptions} />
+              <span className="rounded-lg bg-cyan-500/10 px-2 py-1 text-xs font-semibold text-cyan-600 dark:text-cyan-400">
+                Portfolio
+              </span>
             </div>
           </div>
-        </article>
 
-        <article className="relative overflow-hidden rounded-2xl border border-white/5 bg-[#0b1220]/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div className="text-sm font-semibold text-slate-100">Channel Mix</div>
-            <div className="mt-4 h-[310px]">
-              <Chart type="doughnut" data={channelMixData} options={donutOptions} />
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Active Tokens
+            </p>
+
+            <div className="mt-3 flex items-end justify-between">
+              <p className="text-2xl font-bold text-foreground">
+                {stats.activeTokens}
+              </p>
+
+              <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                Active
+              </span>
             </div>
           </div>
-        </article>
-      </section>
 
-      <section className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="relative overflow-hidden rounded-2xl border border-white/5 bg-[#0b1220]/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div className="text-sm font-semibold text-slate-100">Top 10 Merchants by Volume</div>
-            <div className="mt-4 h-[260px]">
-              <Chart type="bar" data={topMerchantsBarData} options={topMerchantsBarOptions} />
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Transactions
+            </p>
+
+            <div className="mt-3 flex items-end justify-between">
+              <p className="text-2xl font-bold text-foreground">
+                {stats.totalTransactions}
+              </p>
+
+              <span className="rounded-lg bg-violet-500/10 px-2 py-1 text-xs font-semibold text-violet-600 dark:text-violet-400">
+                3 Months
+              </span>
             </div>
           </div>
-        </article>
 
-        <article className="relative overflow-hidden rounded-2xl border border-white/5 bg-[#0b1220]/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div className="text-sm font-semibold text-slate-100">Portfolio Distribution</div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Transaction Volume
+            </p>
 
-            <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-[220px_1fr]">
-              <div className="relative flex items-start justify-center">
-                <div className="relative h-[220px] w-[220px]">
-                  <Chart type="doughnut" data={portfolioDonutData} options={donutOptions} />
-                  <div className="pointer-events-none absolute inset-0 flex translate-y-6 flex-col items-center justify-center text-center">
-                    <div className="text-3xl font-semibold leading-none text-slate-100">
-                      {merchantPortfolio.totalMerchants.toLocaleString()}
-                    </div>
-                    <div className="mt-1 text-xs leading-none text-slate-400">total</div>
-                  </div>
-                </div>
-              </div>
+            <div className="mt-3 flex items-end justify-between">
+              <p className="text-2xl font-bold text-foreground">
+                Rs. {moneyCompact(stats.totalVolume)}
+              </p>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    <span className="h-2 w-2 rounded-sm bg-emerald-400" aria-hidden />
-                    <span>High (50+)</span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-slate-100">{merchantPortfolio.segments.high}</div>
-                  <div className="mt-1 text-xs text-slate-500">{merchantPortfolio.pct.high.toFixed(0)}%</div>
-                </div>
-
-                <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    <span className="h-2 w-2 rounded-sm bg-cyan-400" aria-hidden />
-                    <span>Medium</span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-slate-100">{merchantPortfolio.segments.medium}</div>
-                  <div className="mt-1 text-xs text-slate-500">{merchantPortfolio.pct.medium.toFixed(0)}%</div>
-                </div>
-
-                <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    <span className="h-2 w-2 rounded-sm bg-amber-400" aria-hidden />
-                    <span>Low (≤15)</span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-slate-100">{merchantPortfolio.segments.low}</div>
-                  <div className="mt-1 text-xs text-slate-500">{merchantPortfolio.pct.low.toFixed(0)}%</div>
-                </div>
-
-                <div className="rounded-2xl border border-white/5 bg-black/20 p-4">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-slate-200">
-                    <span className="h-2 w-2 rounded-sm bg-rose-400" aria-hidden />
-                    <span>Inactive</span>
-                  </div>
-                  <div className="mt-2 text-2xl font-semibold text-slate-100">{merchantPortfolio.segments.inactive}</div>
-                  <div className="mt-1 text-xs text-slate-500">{merchantPortfolio.pct.inactive.toFixed(0)}%</div>
-                </div>
-              </div>
+              <span className="rounded-lg bg-violet-500/10 px-2 py-1 text-xs font-semibold text-violet-600 dark:text-violet-400">
+                Volume
+              </span>
             </div>
           </div>
-        </article>
-      </section>
 
-      <section className="mt-6 overflow-hidden rounded-2xl border border-white/5 bg-white/5">
-        <div className="border-b border-white/5 px-5 py-4">
-          <div className="text-sm font-semibold text-slate-100">Merchant Performance Summary</div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Success Rate
+            </p>
+
+            <div className="mt-3 flex items-end justify-between">
+              <p className="text-2xl font-bold text-foreground">
+                {stats.successRate.toFixed(1)}%
+              </p>
+
+              <span className="rounded-lg bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                Success
+              </span>
+            </div>
+          </div>
         </div>
-        <DataTable
-          value={merchantPerformanceRows}
-          loading={loading}
-          dataKey="mid"
-          className="!bg-transparent"
-          tableClassName="!bg-transparent"
-          rowHover
-          size="small"
-          responsiveLayout="scroll"
-          paginator
-          rows={50}
-          rowsPerPageOptions={[25, 50, 100, 200]}
-          paginatorClassName="!border-0 !bg-transparent border-t border-white/5"
-          emptyMessage="No merchants found"
-        >
-          <Column
-            field="merchant"
-            header="Merchant"
-            body={(row) => <span className="text-sky-300">{row?.merchant ?? "-"}</span>}
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="city"
-            header="City"
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="terminals"
-            header="Terminals"
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="qr"
-            header="QR"
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="monthTxns"
-            header={monthTxnHeader}
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="vol3"
-            header="3Mo Volume"
-            body={(row) => moneyCompact(row?.vol3)}
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="avg"
-            header="Avg Txn"
-            body={(row) => moneyCompact(row?.avg)}
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="successPct"
-            header="Success%"
-            body={(row) => (
-              <span className="text-emerald-300">{`${Number(row?.successPct ?? 0).toFixed(1)}%`}</span>
-            )}
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm"
-          />
-          <Column
-            field="active"
-            header="Status"
-            body={statusPill}
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm"
-          />
-        </DataTable>
-      </section>
 
-      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="relative overflow-hidden rounded-2xl border border-white/5 bg-white/5">
-          <div className="border-b border-white/5 px-5 py-4">
-            <div className="text-sm font-semibold text-slate-100">Underperforming Merchants</div>
+        {/* =================================================
+            MAIN COMBO CHART
+        ================================================= */}
+
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+          <div className="mb-5">
+            <h2 className="text-base font-semibold text-foreground">
+              Transaction Performance
+            </h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Monthly transaction volume and success/failure activity.
+            </p>
           </div>
 
-          <div className="w-full overflow-x-auto">
-            <table className="w-full border-collapse">
+          <div className="h-[350px]">
+            <Chart
+              type="bar"
+              data={comboChartData}
+              options={comboChartOptions}
+              className="h-full"
+            />
+          </div>
+        </section>
+
+        {/* =================================================
+            DONUT CHARTS
+        ================================================= */}
+
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+            <div className="mb-4">
+              <h2 className="text-base font-semibold text-foreground">
+                Token Distribution
+              </h2>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Distribution by token type.
+              </p>
+            </div>
+
+            <div className="h-[280px]">
+              <Chart
+                type="doughnut"
+                data={tokenDonutData}
+                options={donutOptions}
+                className="h-full"
+              />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+            <div className="mb-4">
+              <h2 className="text-base font-semibold text-foreground">
+                Transaction Type
+              </h2>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Transaction activity by type.
+              </p>
+            </div>
+
+            <div className="h-[280px]">
+              <Chart
+                type="doughnut"
+                data={transactionTypeData}
+                options={donutOptions}
+                className="h-full"
+              />
+            </div>
+          </section>
+
+          <section className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+            <div className="mb-4">
+              <h2 className="text-base font-semibold text-foreground">
+                Card Type Mix
+              </h2>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Transaction distribution by card network.
+              </p>
+            </div>
+
+            <div className="h-[280px]">
+              <Chart
+                type="doughnut"
+                data={cardTypeData}
+                options={donutOptions}
+                className="h-full"
+              />
+            </div>
+          </section>
+        </div>
+
+        {/* =================================================
+            TOP TOKENS
+        ================================================= */}
+
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+          <div className="mb-5">
+            <h2 className="text-base font-semibold text-foreground">
+              Top Tokens by Volume
+            </h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Tokens generating the highest transaction volume.
+            </p>
+          </div>
+
+          <div className="h-[360px]">
+            <Chart
+              type="bar"
+              data={topTokenBarData}
+              options={topTokenBarOptions}
+              className="h-full"
+            />
+          </div>
+        </section>
+
+        {/* =================================================
+            TOKEN TABLE
+        ================================================= */}
+
+        <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur transition-colors duration-300">
+          <div className="mb-5">
+            <h2 className="text-base font-semibold text-foreground">
+              Token Portfolio
+            </h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Current token inventory and status.
+            </p>
+          </div>
+
+          <div className="relative">
+            <div className="overflow-hidden rounded-2xl border border-border bg-background">
+              <DataTable
+                value={tokenRows}
+                dataKey="id"
+                className="!bg-transparent"
+                tableClassName="!bg-transparent"
+                rowHover
+                size="small"
+                responsiveLayout="scroll"
+                paginator
+                rows={50}
+                rowsPerPageOptions={[25, 50, 100, 200]}
+                paginatorClassName="!border-0 !bg-transparent border-t border-border"
+                emptyMessage="No tokens found"
+              >
+                {tokenColumns.map((column) => (
+                  <Column
+                    key={column.field}
+                    field={column.field}
+                    header={column.header}
+                    body={column.body}
+                    headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                    bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                  />
+                ))}
+              </DataTable>
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================
+            TOKEN PERFORMANCE TABLE
+        ================================================= */}
+
+        <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur transition-colors duration-300">
+          <div className="mb-5">
+            <h2 className="text-base font-semibold text-foreground">
+              Token Performance
+            </h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Transaction and volume performance for each token.
+            </p>
+          </div>
+
+          <div className="relative">
+            <div className="overflow-hidden rounded-2xl border border-border bg-background">
+              <DataTable
+                value={tokenPerformanceRows}
+                dataKey="id"
+                className="!bg-transparent"
+                tableClassName="!bg-transparent"
+                rowHover
+                size="small"
+                responsiveLayout="scroll"
+                paginator
+                rows={50}
+                rowsPerPageOptions={[25, 50, 100, 200]}
+                paginatorClassName="!border-0 !bg-transparent border-t border-border"
+                emptyMessage="No performance data found"
+              >
+                <Column
+                  field="TokenID"
+                  header="Token ID"
+                  headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm font-medium text-foreground"
+                />
+
+                <Column
+                  field="TokenType"
+                  header="Token Type"
+                  headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                />
+
+                <Column
+                  field="Transactions"
+                  header="Transactions"
+                  headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                />
+
+                <Column
+                  field="Successful"
+                  header="Successful"
+                  body={(row) => (
+                    <span className="font-semibold text-emerald-600 dark:text-emerald-400">
+                      {row.Successful}
+                    </span>
+                  )}
+                  headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                />
+
+                <Column
+                  field="Failed"
+                  header="Failed"
+                  body={(row) => (
+                    <span className="font-semibold text-rose-600 dark:text-rose-400">
+                      {row.Failed}
+                    </span>
+                  )}
+                  headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                />
+
+                <Column
+                  field="Volume"
+                  header="Volume"
+                  body={(row) => (
+                    <span className="font-semibold text-violet-600 dark:text-violet-400">
+                      Rs. {row.Volume.toLocaleString()}
+                    </span>
+                  )}
+                  headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                />
+
+                <Column
+                  field="SuccessRate"
+                  header="Success Rate"
+                  body={(row) => (
+                    <span className="font-semibold text-cyan-600 dark:text-cyan-400">
+                      {row.SuccessRate.toFixed(1)}%
+                    </span>
+                  )}
+                  headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                />
+
+                <Column
+                  field="Status"
+                  header="Status"
+                  body={(row) => statusPill(row.Status)}
+                  headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                />
+
+                <Column
+                  field="CreatedDate"
+                  header="Created Date"
+                  body={(row) => (
+                    <span className="text-muted-foreground">
+                      {row.CreatedDate}
+                    </span>
+                  )}
+                  headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                  bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                />
+              </DataTable>
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================
+            TRANSACTION TABLE
+        ================================================= */}
+
+        <section className="relative overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur transition-colors duration-300">
+          <div className="mb-5">
+            <h2 className="text-base font-semibold text-foreground">
+              Recent Transactions
+            </h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Transactions included in the current 3-month reporting period.
+            </p>
+          </div>
+
+          <div className="relative">
+            <div className="overflow-hidden rounded-2xl border border-border bg-background">
+              <DataTable
+                value={filteredTxRows}
+                dataKey="id"
+                className="!bg-transparent"
+                tableClassName="!bg-transparent"
+                rowHover
+                size="small"
+                responsiveLayout="scroll"
+                paginator
+                rows={50}
+                rowsPerPageOptions={[25, 50, 100, 200]}
+                paginatorClassName="!border-0 !bg-transparent border-t border-border"
+                emptyMessage="No transactions found"
+              >
+                {transactionColumns.map((column) => (
+                  <Column
+                    key={column.field}
+                    field={column.field}
+                    header={column.header}
+                    body={column.body}
+                    headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground"
+                    bodyClassName="px-4 py-3 !border-0 border-t border-border text-sm text-foreground"
+                  />
+                ))}
+              </DataTable>
+            </div>
+          </div>
+        </section>
+
+        {/* =================================================
+            MONTHLY SUMMARY
+        ================================================= */}
+
+        <section className="rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+          <div className="mb-5">
+            <h2 className="text-base font-semibold text-foreground">
+              Monthly Summary
+            </h2>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Month-by-month transaction overview.
+            </p>
+          </div>
+
+          <div className="overflow-x-auto rounded-2xl border border-border bg-background">
+            <table className="min-w-full border-collapse">
               <thead>
                 <tr>
-                  <th className="whitespace-nowrap px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-400">Merchant</th>
-                  <th className="whitespace-nowrap px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-400">Txns</th>
-                  <th className="whitespace-nowrap px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-400">Vs Target</th>
-                  <th className="whitespace-nowrap px-5 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-slate-400">Risk</th>
+                  <th className="border-b border-border px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Month
+                  </th>
+
+                  <th className="border-b border-border px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Transactions
+                  </th>
+
+                  <th className="border-b border-border px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Successful
+                  </th>
+
+                  <th className="border-b border-border px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Failed
+                  </th>
+
+                  <th className="border-b border-border px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Volume
+                  </th>
+
+                  <th className="border-b border-border px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Success Rate
+                  </th>
                 </tr>
               </thead>
+
               <tbody>
-                {underperformingRows.map((r) => {
-                  const pct = Math.max(0, Math.min(100, Number(r.pct ?? 0)));
-                  const barColor = pct < 40 ? "bg-rose-400" : pct < 60 ? "bg-amber-400" : "bg-emerald-400";
+                {monthlyTransactionSeries.map((item) => {
+                  const rate =
+                    item.transactions > 0
+                      ? (item.successful / item.transactions) * 100
+                      : 0;
+
                   return (
-                    <tr key={String(r.mid ?? r.merchant)} className="border-t border-white/5">
-                      <td className="whitespace-nowrap px-5 py-3 text-sm font-semibold text-slate-100">{r.merchant ?? "-"}</td>
-                      <td className="whitespace-nowrap px-5 py-3 text-sm text-rose-300">{Number(r.txns ?? 0).toLocaleString()}</td>
-                      <td className="px-5 py-3">
-                        <div className="flex items-center gap-3">
-                          <div className="h-2 w-[140px] overflow-hidden rounded-full bg-black/25">
-                            <div className={`h-full ${barColor}`} style={{ width: `${pct}%` }} />
-                          </div>
-                          <div className="text-xs font-semibold text-slate-400">{pct.toFixed(0)}%</div>
-                        </div>
+                    <tr
+                      key={item.key}
+                      className="transition-colors duration-200 hover:bg-muted/50"
+                    >
+                      <td className="border-b border-border px-4 py-3 text-sm font-medium text-foreground">
+                        {item.label}
                       </td>
-                      <td className="whitespace-nowrap px-5 py-3">{riskPill(r.risk)}</td>
+
+                      <td className="border-b border-border px-4 py-3 text-sm text-foreground">
+                        {item.transactions}
+                      </td>
+
+                      <td className="border-b border-border px-4 py-3 text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                        {item.successful}
+                      </td>
+
+                      <td className="border-b border-border px-4 py-3 text-sm font-semibold text-rose-600 dark:text-rose-400">
+                        {item.failed}
+                      </td>
+
+                      <td className="border-b border-border px-4 py-3 text-sm font-semibold text-violet-600 dark:text-violet-400">
+                        Rs. {item.volume.toLocaleString()}
+                      </td>
+
+                      <td className="border-b border-border px-4 py-3 text-sm font-semibold text-cyan-600 dark:text-cyan-400">
+                        {rate.toFixed(1)}%
+                      </td>
                     </tr>
                   );
                 })}
-
-                {underperformingRows.length === 0 ? (
-                  <tr>
-                    <td colSpan={4} className="px-5 py-6 text-sm text-slate-400">
-                      No merchants found
-                    </td>
-                  </tr>
-                ) : null}
               </tbody>
             </table>
           </div>
-        </article>
-
-        <article className="relative overflow-hidden rounded-2xl border border-white/5 bg-white/5">
-          <div className="border-b border-white/5 px-5 py-4">
-            <div className="text-sm font-semibold text-slate-100">Monthly Target Achievement</div>
-          </div>
-
-          <div className="px-5 py-4">
-            <div className="space-y-4">
-              {monthlyAchievementRows.map((r) => {
-                const pct = Math.max(0, Math.min(100, Number(r.pct ?? 0)));
-                return (
-                  <div key={String(r.mid ?? r.merchant)}>
-                    <div className="flex items-center justify-between text-sm">
-                      <div className="font-semibold text-slate-100">{r.merchant ?? "-"}</div>
-                      <div className="text-xs font-semibold text-emerald-300">{`${Number(r.txns ?? 0)}/${monthlyTarget}`}</div>
-                    </div>
-                    <div className="mt-2 h-2 w-full overflow-hidden rounded-full bg-black/25">
-                      <div className="h-full bg-emerald-400" style={{ width: `${pct}%` }} />
-                    </div>
-                  </div>
-                );
-              })}
-
-              {monthlyAchievementRows.length === 0 ? (
-                <div className="py-6 text-sm text-slate-400">No merchants found</div>
-              ) : null}
-            </div>
-          </div>
-        </article>
-      </section>
-
-      {loading ? <div className="mt-4 text-xs text-slate-500">Loading…</div> : null}
+        </section>
+      </div>
     </div>
   );
 }

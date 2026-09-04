@@ -117,3 +117,16 @@
   font-weight: 700;
   color: #1c1f4a;
 }
+@media (min-width: 1025px) {
+  .sidebarContainer {
+    transition: width 0.3s ease, transform 0.3s ease;
+  }
+
+  .sidebarContainerClosed {
+    transform: translateX(-100%);
+  }
+
+  .mobileToggle {
+    display: inline-flex;
+  }
+}

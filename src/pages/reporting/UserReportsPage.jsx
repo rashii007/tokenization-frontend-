@@ -1,511 +1,1372 @@
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Chart } from "primereact/chart";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import api from "../../network/api";
+import { Button } from "primereact/button";
 
-const toYyyyMm = (date) => {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, "0");
-  return `${y}-${m}`;
-};
+// =====================================================
+// DUMMY TOKEN DATA
+// =====================================================
 
-const formatMonthLabel = (yyyyMm) => {
-  const [y, m] = String(yyyyMm).split("-");
-  const idx = Number(m) - 1;
-  const monthNames = [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec",
-  ];
-  return `${monthNames[idx] ?? m} ${y}`;
-};
+const TOKEN_DATA = [
+  {
+    id: 1,
+    tokenId: "TKN-10001",
+    tokenType: "Payment Token",
+    cardType: "Visa",
+    tokenNumber: "**** **** **** 4521",
+    status: "Active",
+    createdDate: "2026-06-15",
+  },
+  {
+    id: 2,
+    tokenId: "TKN-10002",
+    tokenType: "Network Token",
+    cardType: "Mastercard",
+    tokenNumber: "**** **** **** 7834",
+    status: "Active",
+    createdDate: "2026-06-20",
+  },
+  {
+    id: 3,
+    tokenId: "TKN-10003",
+    tokenType: "Device Token",
+    cardType: "Visa",
+    tokenNumber: "**** **** **** 2198",
+    status: "Active",
+    createdDate: "2026-07-02",
+  },
+  {
+    id: 4,
+    tokenId: "TKN-10004",
+    tokenType: "Payment Token",
+    cardType: "Mastercard",
+    tokenNumber: "**** **** **** 6542",
+    status: "Inactive",
+    createdDate: "2026-07-10",
+  },
+  {
+    id: 5,
+    tokenId: "TKN-10005",
+    tokenType: "Network Token",
+    cardType: "Visa",
+    tokenNumber: "**** **** **** 9187",
+    status: "Active",
+    createdDate: "2026-07-18",
+  },
+  {
+    id: 6,
+    tokenId: "TKN-10006",
+    tokenType: "Device Token",
+    cardType: "Mastercard",
+    tokenNumber: "**** **** **** 3365",
+    status: "Active",
+    createdDate: "2026-07-25",
+  },
+  {
+    id: 7,
+    tokenId: "TKN-10007",
+    tokenType: "Payment Token",
+    cardType: "Visa",
+    tokenNumber: "**** **** **** 7412",
+    status: "Active",
+    createdDate: "2026-08-01",
+  },
+  {
+    id: 8,
+    tokenId: "TKN-10008",
+    tokenType: "Network Token",
+    cardType: "Mastercard",
+    tokenNumber: "**** **** **** 5821",
+    status: "Inactive",
+    createdDate: "2026-08-08",
+  },
+  {
+    id: 9,
+    tokenId: "TKN-10009",
+    tokenType: "Device Token",
+    cardType: "Visa",
+    tokenNumber: "**** **** **** 4678",
+    status: "Active",
+    createdDate: "2026-08-15",
+  },
+  {
+    id: 10,
+    tokenId: "TKN-10010",
+    tokenType: "Payment Token",
+    cardType: "Mastercard",
+    tokenNumber: "**** **** **** 8254",
+    status: "Active",
+    createdDate: "2026-08-22",
+  },
+];
 
-const getDateValue = (row) =>
-  row?.lastLogin ??
-  row?.LastLogin ??
-  row?.last_login ??
-  row?.lastLoginAt ??
-  row?.LastLoginAt ??
-  row?.updatedAt ??
-  row?.UpdatedAt ??
-  row?.createdAt ??
-  row?.CreatedAt ??
-  row?.created_at ??
-  row?.Created_at ??
-  null;
+// =====================================================
+// DUMMY TRANSACTION DATA
+// =====================================================
 
-const safeParseDate = (value) => {
-  if (!value) return null;
-  const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return null;
-  return d;
-};
+const TRANSACTION_DATA = [
+  {
+    id: 1,
+    transactionId: "TXN-100001",
+    tokenId: "TKN-10001",
+    transactionType: "Payment",
+    amount: 12500,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-06-18",
+  },
+  {
+    id: 2,
+    transactionId: "TXN-100002",
+    tokenId: "TKN-10002",
+    transactionType: "Sale",
+    amount: 18500,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-06-21",
+  },
+  {
+    id: 3,
+    transactionId: "TXN-100003",
+    tokenId: "TKN-10003",
+    transactionType: "Payment",
+    amount: 7200,
+    status: "Failed",
+    responseCode: "05",
+    date: "2026-06-25",
+  },
+  {
+    id: 4,
+    transactionId: "TXN-100004",
+    tokenId: "TKN-10004",
+    transactionType: "Sale",
+    amount: 25000,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-07-03",
+  },
+  {
+    id: 5,
+    transactionId: "TXN-100005",
+    tokenId: "TKN-10005",
+    transactionType: "Payment",
+    amount: 15600,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-07-06",
+  },
+  {
+    id: 6,
+    transactionId: "TXN-100006",
+    tokenId: "TKN-10006",
+    transactionType: "Sale",
+    amount: 9800,
+    status: "Failed",
+    responseCode: "05",
+    date: "2026-07-09",
+  },
+  {
+    id: 7,
+    transactionId: "TXN-100007",
+    tokenId: "TKN-10007",
+    transactionType: "Payment",
+    amount: 32000,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-07-12",
+  },
+  {
+    id: 8,
+    transactionId: "TXN-100008",
+    tokenId: "TKN-10008",
+    transactionType: "Sale",
+    amount: 11400,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-07-15",
+  },
+  {
+    id: 9,
+    transactionId: "TXN-100009",
+    tokenId: "TKN-10009",
+    transactionType: "Payment",
+    amount: 22100,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-07-18",
+  },
+  {
+    id: 10,
+    transactionId: "TXN-100010",
+    tokenId: "TKN-10010",
+    transactionType: "Sale",
+    amount: 17800,
+    status: "Failed",
+    responseCode: "05",
+    date: "2026-07-22",
+  },
+  {
+    id: 11,
+    transactionId: "TXN-100011",
+    tokenId: "TKN-10001",
+    transactionType: "Payment",
+    amount: 14500,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-07-25",
+  },
+  {
+    id: 12,
+    transactionId: "TXN-100012",
+    tokenId: "TKN-10002",
+    transactionType: "Sale",
+    amount: 28600,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-07-28",
+  },
+  {
+    id: 13,
+    transactionId: "TXN-100013",
+    tokenId: "TKN-10003",
+    transactionType: "Payment",
+    amount: 9300,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-02",
+  },
+  {
+    id: 14,
+    transactionId: "TXN-100014",
+    tokenId: "TKN-10004",
+    transactionType: "Sale",
+    amount: 19800,
+    status: "Failed",
+    responseCode: "05",
+    date: "2026-08-04",
+  },
+  {
+    id: 15,
+    transactionId: "TXN-100015",
+    tokenId: "TKN-10005",
+    transactionType: "Payment",
+    amount: 35200,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-06",
+  },
+  {
+    id: 16,
+    transactionId: "TXN-100016",
+    tokenId: "TKN-10006",
+    transactionType: "Sale",
+    amount: 12400,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-09",
+  },
+  {
+    id: 17,
+    transactionId: "TXN-100017",
+    tokenId: "TKN-10007",
+    transactionType: "Payment",
+    amount: 27500,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-11",
+  },
+  {
+    id: 18,
+    transactionId: "TXN-100018",
+    tokenId: "TKN-10008",
+    transactionType: "Sale",
+    amount: 8500,
+    status: "Failed",
+    responseCode: "05",
+    date: "2026-08-13",
+  },
+  {
+    id: 19,
+    transactionId: "TXN-100019",
+    tokenId: "TKN-10009",
+    transactionType: "Payment",
+    amount: 41800,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-17",
+  },
+  {
+    id: 20,
+    transactionId: "TXN-100020",
+    tokenId: "TKN-10010",
+    transactionType: "Sale",
+    amount: 22400,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-20",
+  },
+  {
+    id: 21,
+    transactionId: "TXN-100021",
+    tokenId: "TKN-10001",
+    transactionType: "Payment",
+    amount: 18900,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-22",
+  },
+  {
+    id: 22,
+    transactionId: "TXN-100022",
+    tokenId: "TKN-10002",
+    transactionType: "Sale",
+    amount: 31500,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-24",
+  },
+  {
+    id: 23,
+    transactionId: "TXN-100023",
+    tokenId: "TKN-10003",
+    transactionType: "Payment",
+    amount: 7600,
+    status: "Failed",
+    responseCode: "05",
+    date: "2026-08-25",
+  },
+  {
+    id: 24,
+    transactionId: "TXN-100024",
+    tokenId: "TKN-10005",
+    transactionType: "Sale",
+    amount: 26700,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-27",
+  },
+  {
+    id: 25,
+    transactionId: "TXN-100025",
+    tokenId: "TKN-10007",
+    transactionType: "Payment",
+    amount: 38200,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-08-29",
+  },
+  {
+    id: 26,
+    transactionId: "TXN-100026",
+    tokenId: "TKN-10009",
+    transactionType: "Sale",
+    amount: 14500,
+    status: "Failed",
+    responseCode: "05",
+    date: "2026-08-30",
+  },
+  {
+    id: 27,
+    transactionId: "TXN-100027",
+    tokenId: "TKN-10001",
+    transactionType: "Payment",
+    amount: 22000,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-09-01",
+  },
+  {
+    id: 28,
+    transactionId: "TXN-100028",
+    tokenId: "TKN-10002",
+    transactionType: "Sale",
+    amount: 18500,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-09-01",
+  },
+  {
+    id: 29,
+    transactionId: "TXN-100029",
+    tokenId: "TKN-10003",
+    transactionType: "Payment",
+    amount: 9200,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-09-01",
+  },
+  {
+    id: 30,
+    transactionId: "TXN-100030",
+    tokenId: "TKN-10005",
+    transactionType: "Sale",
+    amount: 33200,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-09-01",
+  },
+  {
+    id: 31,
+    transactionId: "TXN-100031",
+    tokenId: "TKN-10006",
+    transactionType: "Payment",
+    amount: 12700,
+    status: "Failed",
+    responseCode: "05",
+    date: "2026-09-02",
+  },
+  {
+    id: 32,
+    transactionId: "TXN-100032",
+    tokenId: "TKN-10007",
+    transactionType: "Sale",
+    amount: 29800,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-09-02",
+  },
+  {
+    id: 33,
+    transactionId: "TXN-100033",
+    tokenId: "TKN-10009",
+    transactionType: "Payment",
+    amount: 45500,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-09-02",
+  },
+  {
+    id: 34,
+    transactionId: "TXN-100034",
+    tokenId: "TKN-10010",
+    transactionType: "Sale",
+    amount: 16400,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-09-02",
+  },
+  {
+    id: 35,
+    transactionId: "TXN-100035",
+    tokenId: "TKN-10004",
+    transactionType: "Payment",
+    amount: 11800,
+    status: "Failed",
+    responseCode: "05",
+    date: "2026-09-02",
+  },
+  {
+    id: 36,
+    transactionId: "TXN-100036",
+    tokenId: "TKN-10008",
+    transactionType: "Sale",
+    amount: 8900,
+    status: "Success",
+    responseCode: "00",
+    date: "2026-09-02",
+  },
+];
 
-const formatDateTime = (value) => {
-  const d = safeParseDate(value);
-  if (!d) return "-";
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  const hh = String(d.getHours()).padStart(2, "0");
-  const min = String(d.getMinutes()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+// =====================================================
+// HELPERS
+// =====================================================
+
+const formatAmount = (value) => `PKR ${Number(value || 0).toLocaleString()}`;
+
+const formatDate = (value) => {
+  if (!value) return "-";
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) return value;
+
+  return date.toLocaleDateString("en-GB", {
+    year: "numeric",
+    month: "short",
+    day: "2-digit",
+  });
 };
 
 const csvEscape = (value) => {
   if (value === null || value === undefined) return "";
-  const str = String(value);
-  const escaped = str.replace(/"/g, '""');
-  return `"${escaped}"`;
+
+  return `"${String(value).replace(/"/g, '""')}"`;
 };
 
-export default function UserReportsPage({
-  breadcrumbSection = "Reports",
-  breadcrumbCurrent = "User Report",
-  pageTitle = "User Report",
-  pageSubtitle = "User access and activity log",
-} = {}) {
-  const [rows, setRows] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+// =====================================================
+// COMPONENT
+// =====================================================
 
-  const joinClasses = (...classes) => classes.filter(Boolean).join(" ");
+export default function TransactionReportsPage() {
+  // ===================================================
+  // THEME DETECTION
+  // ===================================================
+
+  const [isDark, setIsDark] = useState(() =>
+    document.documentElement.classList.contains("dark"),
+  );
 
   useEffect(() => {
-    let ignore = false;
+    const observer = new MutationObserver(() => {
+      setIsDark(document.documentElement.classList.contains("dark"));
+    });
 
-    const load = async () => {
-      setLoading(true);
-      setError("");
-      try {
-        const response = await api.get("/users");
-        const list = Array.isArray(response?.data?.users) ? response.data.users : [];
-        if (!ignore) setRows(list);
-      } catch {
-        if (!ignore) {
-          setRows([]);
-          setError("Failed to load users.");
-        }
-      } finally {
-        if (!ignore) setLoading(false);
-      }
-    };
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class"],
+    });
 
-    load();
-    return () => {
-      ignore = true;
-    };
+    return () => observer.disconnect();
   }, []);
 
-  const now = useMemo(() => new Date(), []);
+  // ===================================================
+  // TOKEN + TRANSACTION SUMMARY
+  // ===================================================
 
-  const userStats = useMemo(() => {
-    const totalUsers = rows.length;
+  const tokenStats = useMemo(() => {
+    const total = TOKEN_DATA.length;
 
-    const getActive = (u) => {
-      const raw = u?.IsActive ?? u?.isActive ?? u?.Active ?? u?.active ?? null;
-      if (raw !== null && raw !== undefined) {
-        if (typeof raw === "boolean") return raw;
-        if (typeof raw === "number") return raw === 1;
-        const s = String(raw).trim().toLowerCase();
-        if (s === "1" || s === "true" || s === "yes") return true;
-        if (s === "0" || s === "false" || s === "no") return false;
-      }
-      const status = String(u?.Status ?? u?.status ?? "").trim().toLowerCase();
-      if (status === "active") return true;
-      if (status === "inactive") return false;
-      return true;
-    };
+    const active = TOKEN_DATA.filter(
+      (token) => token.status === "Active",
+    ).length;
 
-    const activeUsers = rows.filter(getActive).length;
+    const inactive = total - active;
 
-    const orgSet = new Set();
-    rows.forEach((u) => {
-      const org = String(
-        u?.Organization ?? u?.organization ?? u?.Org ?? u?.org ?? u?.Company ?? u?.company ?? u?.Department ?? u?.department ?? ""
-      ).trim();
-      if (org) orgSet.add(org);
-    });
-    const organizations = orgSet.size;
+    const paymentTokens = TOKEN_DATA.filter(
+      (token) => token.tokenType === "Payment Token",
+    ).length;
 
-    const thisMonthKey = toYyyyMm(now);
-    let loginsThisMonth = 0;
-    rows.forEach((u) => {
-      const d = safeParseDate(getDateValue(u));
-      if (!d) return;
-      if (toYyyyMm(d) === thisMonthKey) loginsThisMonth += 1;
-    });
+    const networkTokens = TOKEN_DATA.filter(
+      (token) => token.tokenType === "Network Token",
+    ).length;
 
-    return { totalUsers, activeUsers, organizations, loginsThisMonth };
-  }, [now, rows]);
-
-  const monthSeries = useMemo(() => {
-    const keys = [];
-    for (let i = 2; i >= 0; i -= 1) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      keys.push(toYyyyMm(d));
-    }
-
-    const counts = new Map(keys.map((k) => [k, 0]));
-    rows.forEach((u) => {
-      const d = safeParseDate(getDateValue(u));
-      if (!d) return;
-      const k = toYyyyMm(d);
-      if (!counts.has(k)) return;
-      counts.set(k, (counts.get(k) ?? 0) + 1);
-    });
+    const deviceTokens = TOKEN_DATA.filter(
+      (token) => token.tokenType === "Device Token",
+    ).length;
 
     return {
-      labels: keys.map(formatMonthLabel),
-      values: keys.map((k) => counts.get(k) ?? 0),
+      total,
+      active,
+      inactive,
+      paymentTokens,
+      networkTokens,
+      deviceTokens,
     };
-  }, [now, rows]);
-
-  const roleDistribution = useMemo(() => {
-    const buckets = new Map();
-    rows.forEach((u) => {
-      const accessArr = Array.isArray(u?.access) ? u.access : Array.isArray(u?.Access) ? u.Access : [];
-      const accessType = accessArr
-        .map((a) => String(a?.type ?? a?.Type ?? "").trim())
-        .filter(Boolean)[0];
-      const accessLabel = accessArr
-        .map((a) => String(a?.label ?? a?.Label ?? "").trim())
-        .filter(Boolean)[0];
-
-      const role =
-        String(accessLabel || accessType || u?.user_type || u?.UserType || u?.role || u?.Role || "Unknown").trim() ||
-        "Unknown";
-
-      buckets.set(role, (buckets.get(role) ?? 0) + 1);
-    });
-    const labels = Array.from(buckets.keys());
-    const data = labels.map((l) => buckets.get(l));
-    return { labels, data };
-  }, [rows]);
-
-  const activityRows = useMemo(() => {
-    return (rows ?? []).map((u) => {
-      const username = String(u?.username ?? u?.Username ?? "-").trim() || "-";
-      const name = String(u?.name ?? u?.Name ?? "-").trim() || "-";
-      const role = String(u?.user_type ?? u?.UserType ?? u?.role ?? u?.Role ?? "operator").trim() || "-";
-      const organization =
-        String(
-          u?.Organization ?? u?.organization ?? u?.Org ?? u?.org ?? u?.Company ?? u?.company ?? u?.Department ?? u?.department ?? ""
-        ).trim() || "-";
-
-      const lastLoginRaw = getDateValue(u);
-      const lastLogin = formatDateTime(lastLoginRaw);
-      const lastAction = String(u?.lastAction ?? u?.LastAction ?? "-").trim() || "-";
-      const loginsMo = Number(u?.loginsThisMonth ?? u?.LoginsThisMonth ?? u?.logins_mo ?? 0) || 0;
-
-      const blocked = Number(u?.isBlocked ?? u?.IsBlocked ?? 0) === 1;
-      const active = !blocked;
-      const status = active ? "Active" : "Inactive";
-
-      return { id: u?.id ?? u?.userId ?? username, username, name, role, organization, loginsMo, lastAction, lastLogin, status };
-    });
-  }, [rows]);
-
-  const roleBadge = useCallback((row) => {
-    const role = String(row?.role ?? "").trim() || "-";
-    return (
-      <span className="inline-flex items-center gap-2 rounded-full bg-violet-500/15 px-3 py-1 text-xs font-semibold text-violet-200">
-        <span className="h-2 w-2 rounded-full bg-violet-400" />
-        {role}
-      </span>
-    );
   }, []);
 
-  const statusBadge = useCallback((row) => {
-    const active = String(row?.status ?? "").trim().toLowerCase() === "active";
-    return (
-      <span
-        className={
-          active
-            ? "inline-flex items-center gap-2 rounded-full bg-emerald-500/15 px-3 py-1 text-xs font-semibold text-emerald-200"
-            : "inline-flex items-center gap-2 rounded-full bg-slate-500/15 px-3 py-1 text-xs font-semibold text-slate-200"
-        }
-      >
-        <span className={active ? "h-2 w-2 rounded-full bg-emerald-400" : "h-2 w-2 rounded-full bg-slate-400"} />
-        {active ? "Active" : "Inactive"}
-      </span>
+  const transactionStats = useMemo(() => {
+    const total = TRANSACTION_DATA.length;
+
+    const successful = TRANSACTION_DATA.filter(
+      (tx) => tx.status === "Success",
+    ).length;
+
+    const failed = TRANSACTION_DATA.filter(
+      (tx) => tx.status === "Failed",
+    ).length;
+
+    const volume = TRANSACTION_DATA.reduce(
+      (sum, tx) => sum + Number(tx.amount || 0),
+      0,
     );
+
+    const successRate = total ? (successful / total) * 100 : 0;
+
+    return {
+      total,
+      successful,
+      failed,
+      volume,
+      successRate,
+    };
   }, []);
 
-  const lineData = useMemo(
+  // ===================================================
+  // TOKEN TRANSACTION SUMMARY
+  // ===================================================
+
+  const tokenSummary = useMemo(() => {
+    return TOKEN_DATA.map((token) => {
+      const transactions = TRANSACTION_DATA.filter(
+        (tx) => tx.tokenId === token.tokenId,
+      );
+
+      const totalTransactions = transactions.length;
+
+      const successfulTransactions = transactions.filter(
+        (tx) => tx.status === "Success",
+      ).length;
+
+      const volume = transactions.reduce(
+        (sum, tx) => sum + Number(tx.amount || 0),
+        0,
+      );
+
+      const averageTransaction =
+        totalTransactions > 0 ? volume / totalTransactions : 0;
+
+      const successRate =
+        totalTransactions > 0
+          ? (successfulTransactions / totalTransactions) * 100
+          : 0;
+
+      return {
+        ...token,
+        transactions: totalTransactions,
+        successfulTransactions,
+        failedTransactions: totalTransactions - successfulTransactions,
+        volume,
+        averageTransaction,
+        successRate,
+      };
+    }).sort((a, b) => b.volume - a.volume);
+  }, []);
+
+  // ===================================================
+  // MONTHLY TRANSACTION TREND
+  // ===================================================
+
+  const monthlyTrend = useMemo(() => {
+    const months = [
+      { key: "2026-06", label: "Jun 2026" },
+      { key: "2026-07", label: "Jul 2026" },
+      { key: "2026-08", label: "Aug 2026" },
+      { key: "2026-09", label: "Sep 2026" },
+    ];
+
+    const counts = months.map(
+      (month) =>
+        TRANSACTION_DATA.filter((tx) => tx.date.startsWith(month.key)).length,
+    );
+
+    const volumes = months.map((month) =>
+      TRANSACTION_DATA.filter((tx) => tx.date.startsWith(month.key)).reduce(
+        (sum, tx) => sum + Number(tx.amount || 0),
+        0,
+      ),
+    );
+
+    return {
+      labels: months.map((month) => month.label),
+      counts,
+      volumes,
+    };
+  }, []);
+
+  // ===================================================
+  // TRANSACTION TREND CHART
+  // ===================================================
+
+  const transactionTrendData = useMemo(
     () => ({
-      labels: monthSeries.labels,
+      labels: monthlyTrend.labels,
       datasets: [
         {
-          label: "Users",
-          data: monthSeries.values,
+          label: "Transactions",
+          data: monthlyTrend.counts,
           tension: 0.35,
           fill: true,
-          borderColor: "rgba(168, 85, 247, 0.9)",
-          backgroundColor: "rgba(168, 85, 247, 0.12)",
-          pointRadius: 3,
-          pointHoverRadius: 4,
+          borderColor: "rgba(34,211,238,0.9)",
+          backgroundColor: "rgba(34,211,238,0.12)",
+          pointRadius: 4,
+          pointHoverRadius: 5,
         },
       ],
     }),
-    [monthSeries]
+    [monthlyTrend],
   );
 
-  const donutData = useMemo(
+  // ===================================================
+  // TRANSACTION STATUS CHART
+  // ===================================================
+
+  const transactionStatusData = useMemo(
     () => ({
-      labels: roleDistribution.labels,
+      labels: ["Successful", "Failed"],
       datasets: [
         {
-          data: roleDistribution.data,
-          backgroundColor: [
-            "rgba(14, 165, 233, 0.85)",
-            "rgba(34, 197, 94, 0.85)",
-            "rgba(168, 85, 247, 0.85)",
-            "rgba(244, 63, 94, 0.85)",
-            "rgba(148, 163, 184, 0.6)",
+          data: [transactionStats.successful, transactionStats.failed],
+          backgroundColor: ["rgba(52,211,153,0.9)", "rgba(244,63,94,0.9)"],
+          borderWidth: 0,
+        },
+      ],
+    }),
+    [transactionStats],
+  );
+
+  // ===================================================
+  // TOKEN TYPE CHART
+  // ===================================================
+
+  const tokenTypeData = useMemo(
+    () => ({
+      labels: ["Payment Token", "Network Token", "Device Token"],
+      datasets: [
+        {
+          data: [
+            tokenStats.paymentTokens,
+            tokenStats.networkTokens,
+            tokenStats.deviceTokens,
           ],
-          borderColor: "rgba(2, 6, 23, 0.6)",
+          backgroundColor: [
+            "rgba(14,165,233,0.9)",
+            "rgba(168,85,247,0.9)",
+            "rgba(245,158,11,0.9)",
+          ],
+          borderColor: isDark ? "#0f172a" : "#ffffff",
           borderWidth: 2,
           cutout: "72%",
         },
       ],
     }),
-    [roleDistribution.data, roleDistribution.labels]
+    [tokenStats, isDark],
   );
 
-  const chartOptions = useMemo(
+  // ===================================================
+  // TOP TOKENS CHART
+  // ===================================================
+
+  const topTokens = useMemo(() => tokenSummary.slice(0, 10), [tokenSummary]);
+
+  const topTokenData = useMemo(
     () => ({
+      labels: topTokens.map((token) => token.tokenId),
+      datasets: [
+        {
+          label: "Transaction Volume",
+          data: topTokens.map((token) => token.volume),
+          backgroundColor: "rgba(139,92,246,0.75)",
+          borderRadius: 6,
+        },
+      ],
+    }),
+    [topTokens],
+  );
+
+  // ===================================================
+  // CHART OPTIONS
+  // ===================================================
+
+  const lineChartOptions = useMemo(() => {
+    const textColor = isDark ? "#cbd5e1" : "#334155";
+    const mutedColor = isDark ? "#94a3b8" : "#64748b";
+    const borderColor = isDark ? "#334155" : "#e2e8f0";
+    const cardColor = isDark ? "#0f172a" : "#ffffff";
+    const gridColor = isDark
+      ? "rgba(148,163,184,0.12)"
+      : "rgba(100,116,139,0.15)";
+
+    return {
       maintainAspectRatio: false,
       plugins: {
         legend: {
           labels: {
-            color: "rgba(255,255,255,0.75)",
+            color: textColor,
             boxWidth: 10,
             boxHeight: 10,
           },
         },
         tooltip: {
-          titleColor: "rgba(255,255,255,0.95)",
-          bodyColor: "rgba(255,255,255,0.9)",
+          backgroundColor: cardColor,
+          titleColor: textColor,
+          bodyColor: textColor,
+          borderColor,
+          borderWidth: 1,
         },
       },
       scales: {
         x: {
-          ticks: { color: "rgba(255,255,255,0.6)", maxRotation: 0, autoSkip: true },
-          grid: { color: "rgba(255,255,255,0.06)" },
+          ticks: {
+            color: mutedColor,
+          },
+          grid: {
+            color: gridColor,
+          },
         },
         y: {
-          ticks: { color: "rgba(255,255,255,0.6)" },
-          grid: { color: "rgba(255,255,255,0.06)" },
+          beginAtZero: true,
+          ticks: {
+            color: mutedColor,
+          },
+          grid: {
+            color: gridColor,
+          },
         },
       },
-    }),
-    []
-  );
+    };
+  }, [isDark]);
 
-  const donutOptions = useMemo(
-    () => ({
+  const donutOptions = useMemo(() => {
+    const textColor = isDark ? "#cbd5e1" : "#334155";
+    const borderColor = isDark ? "#334155" : "#e2e8f0";
+    const cardColor = isDark ? "#0f172a" : "#ffffff";
+
+    return {
       maintainAspectRatio: false,
       plugins: {
         legend: {
           position: "bottom",
           labels: {
-            color: "rgba(255,255,255,0.75)",
+            color: textColor,
             boxWidth: 10,
             boxHeight: 10,
+            padding: 14,
+          },
+        },
+        tooltip: {
+          backgroundColor: cardColor,
+          titleColor: textColor,
+          bodyColor: textColor,
+          borderColor,
+          borderWidth: 1,
+        },
+      },
+      layout: {
+        padding: {
+          bottom: 15,
+        },
+      },
+    };
+  }, [isDark]);
+
+  const barChartOptions = useMemo(() => {
+    const textColor = isDark ? "#cbd5e1" : "#334155";
+    const mutedColor = isDark ? "#94a3b8" : "#64748b";
+    const borderColor = isDark ? "#334155" : "#e2e8f0";
+    const cardColor = isDark ? "#0f172a" : "#ffffff";
+    const gridColor = isDark
+      ? "rgba(148,163,184,0.12)"
+      : "rgba(100,116,139,0.15)";
+
+    return {
+      indexAxis: "y",
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          labels: {
+            color: textColor,
+          },
+        },
+        tooltip: {
+          backgroundColor: cardColor,
+          titleColor: textColor,
+          bodyColor: textColor,
+          borderColor,
+          borderWidth: 1,
+        },
+      },
+      scales: {
+        x: {
+          beginAtZero: true,
+          ticks: {
+            color: mutedColor,
+            callback: (value) => `PKR ${Number(value).toLocaleString()}`,
+          },
+          grid: {
+            color: gridColor,
+          },
+        },
+        y: {
+          ticks: {
+            color: mutedColor,
+          },
+          grid: {
+            display: false,
           },
         },
       },
-      layout: { padding: { bottom: 18 } },
-    }),
-    []
-  );
+    };
+  }, [isDark]);
+
+  // ===================================================
+  // BADGES
+  // ===================================================
+
+  const statusBadge = useCallback((row) => {
+    const success = String(row?.status).toLowerCase() === "success";
+
+    return (
+      <span
+        className={
+          success
+            ? "inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"
+            : "inline-flex items-center gap-2 rounded-full bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400"
+        }
+      >
+        <span
+          className={
+            success
+              ? "h-2 w-2 rounded-full bg-emerald-500"
+              : "h-2 w-2 rounded-full bg-rose-500"
+          }
+        />
+        {row?.status}
+      </span>
+    );
+  }, []);
+
+  const tokenStatusBadge = useCallback((row) => {
+    const active = String(row?.status).toLowerCase() === "active";
+
+    return (
+      <span
+        className={
+          active
+            ? "inline-flex items-center gap-2 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400"
+            : "inline-flex items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground"
+        }
+      >
+        <span
+          className={
+            active
+              ? "h-2 w-2 rounded-full bg-emerald-500"
+              : "h-2 w-2 rounded-full bg-muted-foreground"
+          }
+        />
+        {row?.status}
+      </span>
+    );
+  }, []);
+
+  const tokenTypeBadge = useCallback((row) => {
+    return (
+      <span className="inline-flex rounded-full bg-violet-500/10 px-3 py-1 text-xs font-semibold text-violet-600 dark:text-violet-400">
+        {row?.tokenType}
+      </span>
+    );
+  }, []);
+
+  // ===================================================
+  // CSV EXPORT
+  // ===================================================
 
   const handleExport = useCallback(() => {
-    const headers = ["ID", "Name", "Username", "UserType", "Organization", "Status", "LastActivity"]; 
+    const headers = [
+      "Token ID",
+      "Token Type",
+      "Card Type",
+      "Token Number",
+      "Transactions",
+      "Successful",
+      "Failed",
+      "Volume",
+      "Average Transaction",
+      "Success Rate",
+      "Status",
+    ];
+
     const lines = [headers.join(",")];
 
-    rows.forEach((u) => {
+    tokenSummary.forEach((token) => {
       const values = [
-        csvEscape(u?.id ?? u?.userId ?? ""),
-        csvEscape(u?.name ?? ""),
-        csvEscape(u?.username ?? ""),
-        csvEscape(u?.user_type ?? u?.UserType ?? ""),
-        csvEscape(u?.Organization ?? u?.organization ?? u?.Company ?? u?.company ?? ""),
-        csvEscape(u?.Status ?? u?.status ?? (u?.IsActive ?? u?.Active ?? "")),
-        csvEscape(getDateValue(u) ?? ""),
+        csvEscape(token.tokenId),
+        csvEscape(token.tokenType),
+        csvEscape(token.cardType),
+        csvEscape(token.tokenNumber),
+        csvEscape(token.transactions),
+        csvEscape(token.successfulTransactions),
+        csvEscape(token.failedTransactions),
+        csvEscape(token.volume.toFixed(2)),
+        csvEscape(token.averageTransaction.toFixed(2)),
+        csvEscape(`${token.successRate.toFixed(1)}%`),
+        csvEscape(token.status),
       ];
+
       lines.push(values.join(","));
     });
 
     const csv = lines.join("\n");
-    const blob = new Blob(["\ufeff", csv], { type: "text/csv;charset=utf-8;" });
+
+    const blob = new Blob(["\ufeff", csv], {
+      type: "text/csv;charset=utf-8;",
+    });
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
+
     a.href = url;
-    a.download = `user-report_${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `token-transaction-report-${new Date().toISOString().slice(0, 10)}.csv`;
+
     document.body.appendChild(a);
     a.click();
     a.remove();
+
     URL.revokeObjectURL(url);
-  }, [rows]);
+  }, [tokenSummary]);
+
+  // ===================================================
+  // TABLE CLASSES
+  // ===================================================
+
+  const tableHeaderClass =
+    "!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground";
+  const tableBodyClass =
+    "px-4 py-3 !border-0 border-t border-border text-sm text-foreground";
+
+  // ===================================================
+  // RETURN
+  // ===================================================
 
   return (
-    <div className="mx-auto w-full max-w-6xl px-6 py-8">
-      <div className="mb-5 text-xs text-slate-500">
-        {breadcrumbSection} / <span className="text-sky-400">{breadcrumbCurrent}</span>
+    <div className="mx-auto w-full max-w-7xl px-6 py-8">
+      {/* Breadcrumb */}
+
+      <div className="mb-5 text-xs text-muted-foreground">
+        Reports /{" "}
+        <span className="text-sky-600 dark:text-sky-400">
+          Transaction Report
+        </span>
       </div>
+
+      {/* HEADER */}
 
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100">{pageTitle}</h1>
-          <p className="mt-1 text-sm text-slate-400">{pageSubtitle}</p>
+          <h1 className="text-2xl font-semibold text-foreground">
+            Token & Transaction Report
+          </h1>
+
+          <p className="mt-1 text-sm text-muted-foreground">
+            Complete overview of tokens and transaction activity
+          </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleExport}
-          disabled={loading || rows.length === 0}
-          className={joinClasses(
-            "inline-flex items-center justify-center rounded-xl px-4 py-2 text-xs font-semibold",
-            loading || rows.length === 0
-              ? "cursor-not-allowed border border-white/10 bg-white/5 text-slate-400"
-              : "border border-cyan-400/40 bg-cyan-400/90 text-slate-950 hover:bg-cyan-300"
-          )}
-        >
-          Export CSV
-        </button>
+        <Button type="button" label="Export CSV" icon="pi pi-download" iconPos="left" onClick={handleExport} className="!rounded-xl !border !border-primary/30 !bg-primary/10 !px-4 !py-2.5 !text-xs !font-semibold !text-primary shadow-none transition-all duration-200 hover:!bg-primary/15 disabled:!cursor-not-allowed disabled:!opacity-50" />
       </div>
 
-      {error ? <div className="mb-4 text-sm font-semibold text-rose-400">{error}</div> : null}
+      {/* TOKEN STATS */}
 
-      <section className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <article className="rounded-2xl border border-white/5 bg-[#0b1220]/70 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Total Users</div>
-          <div className="mt-3 text-2xl font-semibold text-fuchsia-300">{userStats.totalUsers.toLocaleString()}</div>
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <article className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Total Tokens
+          </div>
+          <div className="mt-3 text-2xl font-semibold text-sky-600 dark:text-sky-400">
+            {tokenStats.total.toLocaleString()}
+          </div>
         </article>
 
-        <article className="rounded-2xl border border-white/5 bg-[#0b1220]/70 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Active Users</div>
-          <div className="mt-3 text-2xl font-semibold text-emerald-300">{userStats.activeUsers.toLocaleString()}</div>
+        <article className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Active Tokens
+          </div>
+          <div className="mt-3 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+            {tokenStats.active.toLocaleString()}
+          </div>
         </article>
 
-        <article className="rounded-2xl border border-white/5 bg-[#0b1220]/70 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Organizations</div>
-          <div className="mt-3 text-2xl font-semibold text-cyan-300">{userStats.organizations.toLocaleString()}</div>
+        <article className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Total Transactions
+          </div>
+          <div className="mt-3 text-2xl font-semibold text-violet-600 dark:text-violet-400">
+            {transactionStats.total.toLocaleString()}
+          </div>
         </article>
 
-        <article className="rounded-2xl border border-white/5 bg-[#0b1220]/70 p-4 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">Logins This Month</div>
-          <div className="mt-3 text-2xl font-semibold text-violet-300">{userStats.loginsThisMonth.toLocaleString()}</div>
+        <article className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Transaction Volume
+          </div>
+          <div className="mt-3 text-2xl font-semibold text-amber-600 dark:text-amber-400">
+            {formatAmount(transactionStats.volume)}
+          </div>
         </article>
       </section>
+
+      {/* TRANSACTION STATS */}
+
+      <section className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
+        <article className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Successful Transactions
+          </div>
+          <div className="mt-3 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
+            {transactionStats.successful.toLocaleString()}
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Failed Transactions
+          </div>
+          <div className="mt-3 text-2xl font-semibold text-rose-600 dark:text-rose-400">
+            {transactionStats.failed.toLocaleString()}
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
+          <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Success Rate
+          </div>
+          <div className="mt-3 text-2xl font-semibold text-sky-600 dark:text-sky-400">
+            {transactionStats.successRate.toFixed(1)}%
+          </div>
+        </article>
+      </section>
+
+      {/* CHARTS */}
 
       <section className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <article className="relative overflow-hidden rounded-2xl border border-white/5 bg-[#0b1220]/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div className="text-sm font-semibold text-slate-100">Monthly Active Users</div>
-            <div className="mt-4 h-[260px]">
-              <Chart type="line" data={lineData} options={chartOptions} />
-            </div>
+        <article className="rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur transition-colors duration-300">
+          <div className="text-sm font-semibold text-foreground">
+            Monthly Transaction Activity
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Transaction count for the last four months
+          </p>
+
+          <div className="mt-4 h-[280px]">
+            <Chart
+              type="line"
+              data={transactionTrendData}
+              options={lineChartOptions}
+            />
           </div>
         </article>
 
-        <article className="relative overflow-hidden rounded-2xl border border-white/5 bg-[#0b1220]/70 p-5 shadow-[0_10px_30px_rgba(0,0,0,0.35)] backdrop-blur">
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/[0.04] to-transparent" aria-hidden />
-          <div className="relative">
-            <div className="text-sm font-semibold text-slate-100">Role Distribution</div>
-            <div className="mt-4 h-[310px]">
-              <Chart type="doughnut" data={donutData} options={donutOptions} />
-            </div>
+        <article className="rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur transition-colors duration-300">
+          <div className="text-sm font-semibold text-foreground">
+            Transaction Status
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Successful vs failed transactions
+          </p>
+
+          <div className="mt-4 h-[280px]">
+            <Chart
+              type="doughnut"
+              data={transactionStatusData}
+              options={donutOptions}
+            />
           </div>
         </article>
       </section>
 
-      {loading ? <div className="mt-4 text-xs text-slate-500">Loading…</div> : null}
+      {/* TOKEN CHARTS */}
 
-      <section className="mt-6 overflow-hidden rounded-2xl border border-white/5 bg-white/5">
-        <div className="border-b border-white/5 px-5 py-4">
-          <div className="text-sm font-semibold text-slate-100">User Activity Log</div>
+      <section className="mt-5 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <article className="rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur transition-colors duration-300">
+          <div className="text-sm font-semibold text-foreground">
+            Token Type Distribution
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Distribution of issued tokens
+          </p>
+
+          <div className="mt-4 h-[280px]">
+            <Chart
+              type="doughnut"
+              data={tokenTypeData}
+              options={donutOptions}
+            />
+          </div>
+        </article>
+
+        <article className="rounded-2xl border border-border bg-card p-5 shadow-sm backdrop-blur transition-colors duration-300">
+          <div className="text-sm font-semibold text-foreground">
+            Top Tokens by Transaction Volume
+          </div>
+          <p className="mt-1 text-xs text-muted-foreground">
+            Tokens generating the highest transaction volume
+          </p>
+
+          <div className="mt-4 h-[280px]">
+            <Chart type="bar" data={topTokenData} options={barChartOptions} />
+          </div>
+        </article>
+      </section>
+
+      {/* TOKEN PERFORMANCE TABLE */}
+
+      <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+        <div className="mb-4">
+          <div className="text-sm font-semibold text-foreground">
+            Token Performance Summary
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Transaction performance by token
+          </div>
         </div>
-        <DataTable
-          value={activityRows}
-          loading={loading}
-          dataKey="id"
-          className="!bg-transparent"
-          tableClassName="!bg-transparent"
-          rowHover
-          size="small"
-          responsiveLayout="scroll"
-          paginator
-          rows={50}
-          rowsPerPageOptions={[25, 50, 100, 200]}
-          paginatorClassName="!border-0 !bg-transparent border-t border-white/5"
-          emptyMessage="No users found"
-        >
-          <Column
-            field="username"
-            header="Username"
-            body={(row) => <span className="text-sky-300">{row?.username ?? "-"}</span>}
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="name"
-            header="Name"
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="role"
-            header="Role"
-            body={roleBadge}
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="organization"
-            header="Organization"
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="loginsMo"
-            header="Logins (Mo)"
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="lastAction"
-            header="Last Action"
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-          <Column
-            field="lastLogin"
-            header="Last Login"
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-xs text-slate-200"
-          />
-          <Column
-            field="status"
-            header="Status"
-            body={statusBadge}
-            headerClassName="!border-0 !bg-transparent px-4 py-3 text-[10px] font-semibold uppercase tracking-wider text-slate-400"
-            bodyClassName="px-4 py-3 !border-0 border-t border-white/5 text-sm text-slate-200"
-          />
-        </DataTable>
+
+        <div className="overflow-hidden rounded-2xl border border-border bg-background">
+          <DataTable
+            value={tokenSummary}
+            dataKey="tokenId"
+            className="!bg-transparent"
+            tableClassName="!bg-transparent"
+            rowHover
+            size="small"
+            responsiveLayout="scroll"
+            paginator
+            rows={10}
+            rowsPerPageOptions={[10, 25, 50]}
+            paginatorClassName="!border-0 !bg-transparent border-t border-border"
+            emptyMessage="No token data found"
+          >
+            <Column
+              field="tokenId"
+              header="Token ID"
+              headerClassName={tableHeaderClass}
+              bodyClassName={`${tableBodyClass} text-sky-600 dark:text-sky-400`}
+            />
+
+            <Column
+              field="tokenType"
+              header="Token Type"
+              body={tokenTypeBadge}
+              headerClassName={tableHeaderClass}
+              bodyClassName={tableBodyClass}
+            />
+
+            <Column
+              field="cardType"
+              header="Card Type"
+              headerClassName={tableHeaderClass}
+              bodyClassName={tableBodyClass}
+            />
+
+            <Column
+              field="tokenNumber"
+              header="Token Number"
+              headerClassName={tableHeaderClass}
+              bodyClassName={`${tableBodyClass} text-muted-foreground`}
+            />
+
+            <Column
+              field="transactions"
+              header="Transactions"
+              headerClassName={tableHeaderClass}
+              bodyClassName={tableBodyClass}
+            />
+
+            <Column
+              field="volume"
+              header="Volume"
+              body={(row) => formatAmount(row?.volume)}
+              headerClassName={tableHeaderClass}
+              bodyClassName={`${tableBodyClass} font-semibold text-amber-600 dark:text-amber-400`}
+            />
+
+            <Column
+              field="averageTransaction"
+              header="Avg Txn"
+              body={(row) => formatAmount(row?.averageTransaction)}
+              headerClassName={tableHeaderClass}
+              bodyClassName={tableBodyClass}
+            />
+
+            <Column
+              field="successRate"
+              header="Success %"
+              body={(row) => `${Number(row?.successRate || 0).toFixed(1)}%`}
+              headerClassName={tableHeaderClass}
+              bodyClassName={`${tableBodyClass} text-emerald-600 dark:text-emerald-400`}
+            />
+
+            <Column
+              field="status"
+              header="Status"
+              body={tokenStatusBadge}
+              headerClassName={tableHeaderClass}
+              bodyClassName={tableBodyClass}
+            />
+          </DataTable>
+        </div>
+      </section>
+
+      {/* TRANSACTION DETAIL TABLE */}
+
+      <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
+        <div className="mb-4">
+          <div className="text-sm font-semibold text-foreground">
+            Transaction Details
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Complete token transaction activity
+          </div>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border border-border bg-background">
+          <DataTable
+            value={TRANSACTION_DATA}
+            dataKey="transactionId"
+            className="!bg-transparent"
+            tableClassName="!bg-transparent"
+            rowHover
+            size="small"
+            responsiveLayout="scroll"
+            paginator
+            rows={10}
+            rowsPerPageOptions={[10, 25, 50]}
+            paginatorClassName="!border-0 !bg-transparent border-t border-border"
+            emptyMessage="No transactions found"
+          >
+            <Column
+              field="transactionId"
+              header="Transaction ID"
+              headerClassName={tableHeaderClass}
+              bodyClassName={`${tableBodyClass} text-sky-600 dark:text-sky-400`}
+            />
+
+            <Column
+              field="date"
+              header="Date"
+              body={(row) => formatDate(row?.date)}
+              headerClassName={tableHeaderClass}
+              bodyClassName={`${tableBodyClass} text-muted-foreground`}
+            />
+
+            <Column
+              field="tokenId"
+              header="Token ID"
+              headerClassName={tableHeaderClass}
+              bodyClassName={`${tableBodyClass} text-violet-600 dark:text-violet-400`}
+            />
+
+            <Column
+              field="transactionType"
+              header="Transaction Type"
+              headerClassName={tableHeaderClass}
+              bodyClassName={tableBodyClass}
+            />
+
+            <Column
+              field="amount"
+              header="Amount"
+              body={(row) => formatAmount(row?.amount)}
+              headerClassName={tableHeaderClass}
+              bodyClassName={`${tableBodyClass} font-semibold text-amber-600 dark:text-amber-400`}
+            />
+
+            <Column
+              field="responseCode"
+              header="Response Code"
+              body={(row) => (
+                <span
+                  className={
+                    row?.responseCode === "00"
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-rose-600 dark:text-rose-400"
+                  }
+                >
+                  {row?.responseCode}
+                </span>
+              )}
+              headerClassName={tableHeaderClass}
+              bodyClassName={tableBodyClass}
+            />
+
+            <Column
+              field="status"
+              header="Status"
+              body={statusBadge}
+              headerClassName={tableHeaderClass}
+              bodyClassName={tableBodyClass}
+            />
+          </DataTable>
+        </div>
       </section>
     </div>
   );
