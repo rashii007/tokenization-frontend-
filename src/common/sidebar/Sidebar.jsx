@@ -16,8 +16,7 @@ import {
 
 import "./Sidebar.css";
 import logo from "../../assets/images/logo.png";
-import RaastLogo from "../../assets/images/Raast-logo.png";
-
+import RaastLogo from "../../assets/images/Raast-Logo.png";
 const NAV_GROUPS = [
   // =========================
   // DASHBOARD
