@@ -287,10 +287,9 @@ export default function DashboardPage() {
     for (let i = 5; i >= 0; i--) {
       const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
 
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-        2,
-        "0",
-      )}`;
+      const key = `${date.getFullYear()}-${String(
+        date.getMonth() + 1,
+      ).padStart(2, "0")}`;
 
       keys.push(key);
     }
@@ -314,10 +313,9 @@ export default function DashboardPage() {
 
       if (Number.isNaN(date.getTime())) return;
 
-      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(
-        2,
-        "0",
-      )}`;
+      const key = `${date.getFullYear()}-${String(
+        date.getMonth() + 1,
+      ).padStart(2, "0")}`;
 
       if (!buckets.has(key)) return;
 
@@ -430,13 +428,13 @@ export default function DashboardPage() {
   ========================================================= */
 
   const chartOptions = useMemo(() => {
-    const textColor = darkMode ? "#f8fafc" : "#1c1f4a";
+    const textColor = darkMode ? "#E8F5F1" : "#1f2937";
 
-    const mutedColor = darkMode ? "#94a3b8" : "#677079";
+    const mutedColor = darkMode ? "#9FB8B1" : "#64748b";
 
     const gridColor = darkMode
-      ? "rgba(148,163,184,0.15)"
-      : "rgba(103,112,121,0.15)";
+      ? "rgba(80, 190, 160, 0.14)"
+      : "rgba(100,116,139,0.15)";
 
     return {
       maintainAspectRatio: false,
@@ -453,8 +451,8 @@ export default function DashboardPage() {
         tooltip: {
           titleColor: textColor,
           bodyColor: textColor,
-          backgroundColor: darkMode ? "#111827" : "#ffffff",
-          borderColor: darkMode ? "#334155" : "#e0e0e0",
+          backgroundColor: darkMode ? "#071B22" : "#ffffff",
+          borderColor: darkMode ? "#174B55" : "#d1d5db",
           borderWidth: 1,
         },
       },
@@ -499,9 +497,11 @@ export default function DashboardPage() {
 
           data: monthlySeries.counts,
 
-          backgroundColor: "rgba(34, 211, 238, 0.35)",
+          backgroundColor: darkMode
+            ? "rgba(0, 166, 81, 0.35)"
+            : "rgba(0, 166, 81, 0.25)",
 
-          borderColor: "rgba(34, 211, 238, 0.9)",
+          borderColor: darkMode ? "#36C58A" : "#00A651",
 
           borderWidth: 1,
 
@@ -509,7 +509,7 @@ export default function DashboardPage() {
         },
       ],
     }),
-    [monthlySeries],
+    [monthlySeries, darkMode],
   );
 
   const volumeChartData = useMemo(
@@ -526,17 +526,25 @@ export default function DashboardPage() {
 
           fill: true,
 
-          backgroundColor: "rgba(34, 211, 238, 0.10)",
+          backgroundColor: darkMode
+            ? "rgba(0, 145, 190, 0.14)"
+            : "rgba(0, 166, 81, 0.10)",
 
-          borderColor: "rgba(34, 211, 238, 0.85)",
+          borderColor: darkMode
+            ? "rgba(36, 181, 207, 0.95)"
+            : "rgba(0, 166, 81, 0.9)",
 
           pointRadius: 3,
 
           pointHoverRadius: 5,
+
+          pointBackgroundColor: darkMode ? "#24B5CF" : "#00A651",
+
+          pointBorderColor: darkMode ? "#24B5CF" : "#00A651",
         },
       ],
     }),
-    [monthlySeries],
+    [monthlySeries, darkMode],
   );
 
   const hourlyChartData = useMemo(() => {
@@ -557,19 +565,27 @@ export default function DashboardPage() {
 
           data: hourlyActivity,
 
-          borderColor: "rgba(139, 92, 246, 0.9)",
+          borderColor: darkMode
+            ? "rgba(36, 181, 207, 0.95)"
+            : "rgba(0, 166, 81, 0.9)",
 
-          backgroundColor: "rgba(139, 92, 246, 0.12)",
+          backgroundColor: darkMode
+            ? "rgba(36, 181, 207, 0.10)"
+            : "rgba(0, 166, 81, 0.10)",
 
           fill: true,
 
           tension: 0.35,
 
           pointRadius: 3,
+
+          pointBackgroundColor: darkMode ? "#36C58A" : "#00A651",
+
+          pointBorderColor: darkMode ? "#36C58A" : "#00A651",
         },
       ],
     };
-  }, [hourlyActivity]);
+  }, [hourlyActivity, darkMode]);
 
   /* =========================================================
      TABLE COLUMNS
@@ -643,7 +659,7 @@ export default function DashboardPage() {
                 success
                   ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
                   : pending
-                    ? "border-amber-500/20 bg-amber-500/10 text-amber-600 dark:text-amber-300"
+                    ? "border-teal-500/20 bg-teal-500/10 text-teal-600 dark:text-teal-300"
                     : "border-rose-500/20 bg-rose-500/10 text-rose-600 dark:text-rose-300",
               ].join(" ")}
             >
@@ -672,7 +688,9 @@ export default function DashboardPage() {
       label: "Total Tokens",
       value: tokenCount,
       icon: Wallet,
-      accent: "bg-cyan-400",
+
+      accent: darkMode ? "bg-[#36C58A]" : "bg-[#00A651]",
+
       bottom: "Live token data",
     },
 
@@ -681,7 +699,8 @@ export default function DashboardPage() {
       label: "Total Transactions",
       value: transactionCount,
       icon: Activity,
-      accent: "bg-violet-400",
+
+      accent: darkMode ? "bg-[#24B5CF]" : "bg-[#00A651]",
 
       bottom: `${
         dateSeries.monthDifference >= 0 ? "+" : ""
@@ -693,7 +712,8 @@ export default function DashboardPage() {
       label: "Transactions Today",
       value: dateSeries.todayCount,
       icon: CreditCard,
-      accent: "bg-emerald-400",
+
+      accent: darkMode ? "bg-[#36C58A]" : "bg-[#00A651]",
 
       bottom:
         dateSeries.percentageVsYesterday === null
@@ -708,7 +728,9 @@ export default function DashboardPage() {
       label: "Transaction Volume",
       value: totalVolume,
       icon: TrendingUp,
-      accent: "bg-amber-400",
+
+      accent: darkMode ? "bg-[#24B5CF]" : "bg-[#00A651]",
+
       bottom: "PKR volume",
     },
   ];
@@ -743,7 +765,7 @@ export default function DashboardPage() {
             <ThemeToggle />
 
             <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-4 py-2 shadow-sm">
-              <Clock3 className="h-4 w-4 text-cyan-400" />
+              <Clock3 className="h-4 w-4 text-[#00A651] dark:text-[#36C58A]" />
 
               <span className="text-sm font-medium text-foreground">
                 {currentTime.toLocaleTimeString([], {
@@ -795,10 +817,10 @@ export default function DashboardPage() {
 
               <div className="relative">
                 <div className="flex items-center justify-between">
-                  <Icon className="h-5 w-5 text-primary" />
+                  <Icon className="h-5 w-5 text-[#00A651] dark:text-[#36C58A]" />
 
                   {stat.id === "token" && (
-                    <span className="rounded-full bg-cyan-500/10 px-2 py-1 text-[10px] font-medium text-cyan-600 dark:text-cyan-300">
+                    <span className="rounded-full bg-[#00A651]/10 px-2 py-1 text-[10px] font-medium text-[#008F45] dark:bg-[#36C58A]/10 dark:text-[#65D9AD]">
                       LIVE
                     </span>
                   )}
@@ -818,7 +840,7 @@ export default function DashboardPage() {
                   {stat.label}
                 </div>
 
-                <div className="mt-3 text-xs font-semibold text-emerald-600 dark:text-emerald-400">
+                <div className="mt-3 text-xs font-semibold text-[#008F45] dark:text-[#4DD39E]">
                   {stat.bottom}
                 </div>
               </div>
@@ -859,8 +881,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-cyan-500/10">
-              <Wallet className="h-6 w-6 text-cyan-400" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#00A651]/10 dark:bg-[#36C58A]/10">
+              <Wallet className="h-6 w-6 text-[#00A651] dark:text-[#36C58A]" />
             </div>
           </div>
         </article>
@@ -881,7 +903,9 @@ export default function DashboardPage() {
 
           <div className="mt-5 flex items-center justify-between rounded-2xl border border-border bg-muted/30 p-5">
             <div>
-              <div className="text-xs text-muted-foreground">Current Time</div>
+              <div className="text-xs text-muted-foreground">
+                Current Time
+              </div>
 
               <div className="mt-2 text-3xl font-semibold text-foreground">
                 {currentTime.toLocaleTimeString([], {
@@ -893,8 +917,8 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/10">
-              <Clock3 className="h-6 w-6 text-violet-400" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#00A651]/10 dark:bg-[#24B5CF]/10">
+              <Clock3 className="h-6 w-6 text-[#00A651] dark:text-[#24B5CF]" />
             </div>
           </div>
         </article>
@@ -1008,7 +1032,7 @@ export default function DashboardPage() {
           <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-2xl border border-border bg-muted/30 p-4">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-emerald-400" />
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-[#36C58A]" />
 
                 <span className="text-xs font-semibold text-foreground">
                   Success Rate
@@ -1044,7 +1068,7 @@ export default function DashboardPage() {
 
             <div className="rounded-2xl border border-border bg-muted/30 p-4">
               <div className="flex items-center gap-2">
-                <CreditCard className="h-4 w-4 text-cyan-500 dark:text-cyan-400" />
+                <CreditCard className="h-4 w-4 text-[#00A651] dark:text-[#24B5CF]" />
 
                 <span className="text-xs font-semibold text-foreground">
                   Avg Transaction
@@ -1062,7 +1086,7 @@ export default function DashboardPage() {
 
             <div className="rounded-2xl border border-border bg-muted/30 p-4">
               <div className="flex items-center gap-2">
-                <TrendingUp className="h-4 w-4 text-violet-500 dark:text-violet-400" />
+                <TrendingUp className="h-4 w-4 text-[#00A651] dark:text-[#36C58A]" />
 
                 <span className="text-xs font-semibold text-foreground">
                   Total Volume
@@ -1203,8 +1227,12 @@ export default function DashboardPage() {
         }
 
         .theme-datatable .p-paginator .p-paginator-page.p-highlight {
-          background: hsl(var(--primary) / 0.15) !important;
-          color: hsl(var(--primary)) !important;
+          background: darkMode
+            ? rgba(36, 181, 207, 0.15)
+            : hsl(var(--primary) / 0.15) !important;
+          color: darkMode
+            ? #24B5CF
+            : hsl(var(--primary)) !important;
         }
 
         .theme-datatable .p-paginator .p-dropdown {
@@ -1255,8 +1283,12 @@ export default function DashboardPage() {
         }
 
         .p-dropdown-panel .p-dropdown-item.p-highlight {
-          background: hsl(var(--primary) / 0.12) !important;
-          color: hsl(var(--primary)) !important;
+          background: darkMode
+            ? rgba(36, 181, 207, 0.12)
+            : hsl(var(--primary) / 0.12) !important;
+          color: darkMode
+            ? #24B5CF
+            : hsl(var(--primary)) !important;
         }
 
         .theme-datatable .p-datatable-wrapper {

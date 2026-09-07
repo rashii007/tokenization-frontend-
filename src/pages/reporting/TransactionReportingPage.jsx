@@ -4,11 +4,19 @@ import { Button } from "primereact/button";
 import { Chart } from "primereact/chart";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
-import api from "../../network/api";
+import {
+  Activity,
+  CheckCircle2,
+  Clock3,
+  CreditCard,
+  Download,
+  Filter,
+  TrendingUp,
+} from "lucide-react";
 
-/* =========================================================
-   PERIOD OPTIONS
-========================================================= */
+import { useTheme } from "../../context/ThemeContext";
+import ThemeToggle from "../../components/ThemeToggle";
+import api from "../../network/api";
 
 const PERIOD_OPTIONS = [
   { label: "Last 7 days", value: "7d" },
@@ -16,19 +24,13 @@ const PERIOD_OPTIONS = [
   { label: "Last 3 months", value: "3m" },
 ];
 
-/* =========================================================
-   HELPERS
-========================================================= */
-
 const normalizeTransactions = (response) => {
   const body = response?.data;
 
-  // API returns array
   if (Array.isArray(body)) {
     return body;
   }
 
-  // API returns single transaction object
   if (body && typeof body === "object" && body.transactionId) {
     return [body];
   }
@@ -36,39 +38,22 @@ const normalizeTransactions = (response) => {
   return [];
 };
 
-/* =========================================================
-   API FIELD HELPERS
-========================================================= */
+const getTransactionId = (row) => row?.transactionId ?? "-";
 
-const getTransactionId = (row) => {
-  return row?.transactionId ?? "-";
-};
+const getTokenId = (row) => row?.tokenId ?? "-";
 
-const getTokenId = (row) => {
-  return row?.tokenId ?? "-";
-};
-
-const getTransactionType = (row) => {
-  return row?.transactionType ?? "-";
-};
+const getTransactionType = (row) => row?.transactionType ?? "-";
 
 const getAmount = (row) => {
   const amount = Number(row?.amount ?? 0);
-
   return Number.isFinite(amount) ? amount : 0;
 };
 
-const getCurrencyCode = (row) => {
-  return row?.currencyCode ?? "PKR";
-};
+const getCurrencyCode = (row) => row?.currencyCode ?? "PKR";
 
-const getReferenceNumber = (row) => {
-  return row?.referenceNumber ?? "-";
-};
+const getReferenceNumber = (row) => row?.referenceNumber ?? "-";
 
-const getStatus = (row) => {
-  return row?.status ?? "-";
-};
+const getStatus = (row) => row?.status ?? "-";
 
 const getDate = (row) => {
   const value = row?.transactionDate;
@@ -131,7 +116,7 @@ const getStatusClass = (status) => {
     value === "successful" ||
     value === "completed"
   ) {
-    return "inline-flex rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-400";
+    return "inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-600 dark:text-emerald-300";
   }
 
   if (
@@ -139,21 +124,19 @@ const getStatusClass = (status) => {
     value === "failure" ||
     value === "rejected"
   ) {
-    return "inline-flex rounded-full bg-rose-500/10 px-3 py-1 text-xs font-semibold text-rose-600 dark:text-rose-400";
+    return "inline-flex items-center rounded-full border border-rose-500/20 bg-rose-500/10 px-2.5 py-1 text-xs font-semibold text-rose-600 dark:text-rose-300";
   }
 
   if (value === "pending") {
-    return "inline-flex rounded-full bg-amber-500/10 px-3 py-1 text-xs font-semibold text-amber-600 dark:text-amber-400";
+    return "inline-flex items-center rounded-full border border-teal-500/20 bg-teal-500/10 px-2.5 py-1 text-xs font-semibold text-teal-600 dark:text-teal-300";
   }
 
-  return "inline-flex rounded-full bg-muted px-3 py-1 text-xs font-semibold text-muted-foreground";
+  return "inline-flex items-center rounded-full border border-border bg-muted px-2.5 py-1 text-xs font-semibold text-muted-foreground";
 };
 
-/* =========================================================
-   PAGE
-========================================================= */
-
 export default function TransactionReportingPage() {
+  const { darkMode } = useTheme();
+
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -165,10 +148,6 @@ export default function TransactionReportingPage() {
     period: "3m",
     type: "all",
   });
-
-  /* =======================================================
-     THEME
-  ======================================================= */
 
   const [isDark, setIsDark] = useState(() =>
     document.documentElement.classList.contains("dark"),
@@ -187,10 +166,6 @@ export default function TransactionReportingPage() {
     return () => observer.disconnect();
   }, []);
 
-  /* =======================================================
-     GET TRANSACTIONS FROM API
-  ======================================================= */
-
   useEffect(() => {
     let mounted = true;
 
@@ -200,9 +175,6 @@ export default function TransactionReportingPage() {
         setError("");
 
         const response = await api.get("/transaction/portal");
-
-        console.log("Transaction Portal Response:", response.data);
-
         const data = normalizeTransactions(response);
 
         if (mounted) {
@@ -235,10 +207,6 @@ export default function TransactionReportingPage() {
     };
   }, []);
 
-  /* =======================================================
-     TRANSACTION TYPE OPTIONS
-  ======================================================= */
-
   const typeOptions = useMemo(() => {
     const uniqueTypes = new Set();
 
@@ -261,10 +229,6 @@ export default function TransactionReportingPage() {
       })),
     ];
   }, [transactions]);
-
-  /* =======================================================
-     FILTER TRANSACTIONS
-  ======================================================= */
 
   const filteredTransactions = useMemo(() => {
     const now = new Date();
@@ -304,10 +268,6 @@ export default function TransactionReportingPage() {
     });
   }, [transactions, applied]);
 
-  /* =======================================================
-     SUMMARY
-  ======================================================= */
-
   const summary = useMemo(() => {
     const totalTransactions = filteredTransactions.length;
 
@@ -343,10 +303,6 @@ export default function TransactionReportingPage() {
       totalVolume,
     };
   }, [filteredTransactions]);
-
-  /* =======================================================
-     MONTHLY CHART
-  ======================================================= */
 
   const monthData = useMemo(() => {
     const monthMap = new Map();
@@ -388,25 +344,25 @@ export default function TransactionReportingPage() {
 
     return {
       labels: sortedMonths.map((item) => item.label),
-
       datasets: [
         {
           label: "Transactions",
           data: sortedMonths.map((item) => item.count),
-          borderColor: "rgba(14, 165, 233, 0.95)",
-          backgroundColor: "rgba(14, 165, 233, 0.2)",
+          borderColor: darkMode ? "#36C58A" : "#00A651",
+          backgroundColor: darkMode
+            ? "rgba(0, 166, 81, 0.20)"
+            : "rgba(0, 166, 81, 0.12)",
           borderWidth: 2,
           fill: true,
           tension: 0.35,
           pointRadius: 4,
+          pointHoverRadius: 5,
+          pointBackgroundColor: darkMode ? "#36C58A" : "#00A651",
+          pointBorderColor: darkMode ? "#36C58A" : "#00A651",
         },
       ],
     };
-  }, [filteredTransactions]);
-
-  /* =======================================================
-     TRANSACTION TYPE CHART
-  ======================================================= */
+  }, [filteredTransactions, darkMode]);
 
   const typeData = useMemo(() => {
     const typeMap = new Map();
@@ -426,36 +382,38 @@ export default function TransactionReportingPage() {
 
     return {
       labels: entries.map(([label]) => label),
-
       datasets: [
         {
           data: entries.map(([, count]) => count),
-          backgroundColor: [
-            "rgba(14, 165, 233, 0.85)",
-            "rgba(34, 197, 94, 0.85)",
-            "rgba(168, 85, 247, 0.85)",
-            "rgba(244, 63, 94, 0.85)",
-            "rgba(245, 158, 11, 0.85)",
-          ],
+          backgroundColor: darkMode
+            ? [
+                "rgba(54, 197, 138, 0.85)",
+                "rgba(36, 181, 207, 0.85)",
+                "rgba(0, 166, 81, 0.85)",
+                "rgba(36, 181, 207, 0.65)",
+                "rgba(54, 197, 138, 0.65)",
+              ]
+            : [
+                "rgba(0, 166, 81, 0.85)",
+                "rgba(36, 181, 138, 0.85)",
+                "rgba(0, 166, 81, 0.70)",
+                "rgba(36, 181, 138, 0.70)",
+                "rgba(0, 166, 81, 0.55)",
+              ],
           borderWidth: 2,
           cutout: "70%",
         },
       ],
     };
-  }, [filteredTransactions]);
-
-  /* =======================================================
-     CHART OPTIONS
-  ======================================================= */
+  }, [filteredTransactions, darkMode]);
 
   const chartOptions = useMemo(() => {
-    const textColor = isDark ? "#cbd5e1" : "#475569";
+    const textColor = darkMode ? "#E8F5F1" : "#1f2937";
+    const mutedColor = darkMode ? "#9FB8B1" : "#64748b";
 
-    const mutedColor = isDark ? "#94a3b8" : "#64748b";
-
-    const gridColor = isDark
-      ? "rgba(148, 163, 184, 0.12)"
-      : "rgba(100, 116, 139, 0.15)";
+    const gridColor = darkMode
+      ? "rgba(80, 190, 160, 0.14)"
+      : "rgba(100,116,139,0.15)";
 
     return {
       maintainAspectRatio: false,
@@ -465,22 +423,15 @@ export default function TransactionReportingPage() {
           labels: {
             color: textColor,
             boxWidth: 10,
+            boxHeight: 10,
           },
         },
 
         tooltip: {
-          backgroundColor: isDark
-            ? "rgba(15, 23, 42, 0.95)"
-            : "rgba(255, 255, 255, 0.98)",
-
-          titleColor: isDark ? "#e2e8f0" : "#0f172a",
-
-          bodyColor: isDark ? "#e2e8f0" : "#334155",
-
-          borderColor: isDark
-            ? "rgba(255,255,255,0.08)"
-            : "rgba(15,23,42,0.10)",
-
+          titleColor: textColor,
+          bodyColor: textColor,
+          backgroundColor: darkMode ? "#071B22" : "#ffffff",
+          borderColor: darkMode ? "#174B55" : "#d1d5db",
           borderWidth: 1,
         },
       },
@@ -489,6 +440,8 @@ export default function TransactionReportingPage() {
         x: {
           ticks: {
             color: mutedColor,
+            maxRotation: 0,
+            autoSkip: true,
           },
 
           grid: {
@@ -507,7 +460,7 @@ export default function TransactionReportingPage() {
         },
       },
     };
-  }, [isDark]);
+  }, [darkMode]);
 
   const donutOptions = useMemo(() => {
     return {
@@ -518,18 +471,22 @@ export default function TransactionReportingPage() {
           position: "bottom",
 
           labels: {
-            color: isDark ? "#cbd5e1" : "#475569",
+            color: darkMode ? "#E8F5F1" : "#1f2937",
             padding: 14,
             boxWidth: 10,
           },
         },
+
+        tooltip: {
+          titleColor: darkMode ? "#E8F5F1" : "#1f2937",
+          bodyColor: darkMode ? "#E8F5F1" : "#1f2937",
+          backgroundColor: darkMode ? "#071B22" : "#ffffff",
+          borderColor: darkMode ? "#174B55" : "#d1d5db",
+          borderWidth: 1,
+        },
       },
     };
-  }, [isDark]);
-
-  /* =======================================================
-     EXPORT CSV
-  ======================================================= */
+  }, [darkMode]);
 
   const handleExport = () => {
     if (filteredTransactions.length === 0) {
@@ -575,7 +532,6 @@ export default function TransactionReportingPage() {
     });
 
     const url = URL.createObjectURL(blob);
-
     const link = document.createElement("a");
 
     const now = new Date();
@@ -585,17 +541,11 @@ export default function TransactionReportingPage() {
     link.download = `transaction-report_${date}.csv`;
 
     document.body.appendChild(link);
-
     link.click();
 
     link.remove();
-
     URL.revokeObjectURL(url);
   };
-
-  /* =======================================================
-     APPLY
-  ======================================================= */
 
   const handleApply = () => {
     setApplied({
@@ -604,67 +554,120 @@ export default function TransactionReportingPage() {
     });
   };
 
-  /* =======================================================
-     RENDER
-  ======================================================= */
+  const stats = [
+    {
+      id: "total",
+      label: "Total Transactions",
+      value: summary.totalTransactions,
+      icon: Activity,
+      accent: darkMode ? "bg-[#36C58A]" : "bg-[#00A651]",
+      bottom: "Filtered transaction data",
+    },
+    {
+      id: "success",
+      label: "Successful",
+      value: summary.successfulTransactions,
+      icon: CheckCircle2,
+      accent: darkMode ? "bg-[#36C58A]" : "bg-[#00A651]",
+      bottom: "Successful transactions",
+    },
+    {
+      id: "failed",
+      label: "Failed",
+      value: summary.failedTransactions,
+      icon: Activity,
+      accent: "bg-rose-500",
+      bottom: "Failed transactions",
+    },
+    {
+      id: "volume",
+      label: "Total Volume",
+      value: summary.totalVolume,
+      icon: TrendingUp,
+      accent: darkMode ? "bg-[#24B5CF]" : "bg-[#00A651]",
+      bottom: "PKR transaction volume",
+    },
+  ];
 
   return (
-    <div className="mx-auto w-full max-w-7xl px-6 py-8">
-      {/* Breadcrumb */}
+    <div
+      className="min-h-full transition-colors duration-300"
+      style={{
+        backgroundColor: "hsl(var(--background))",
+        color: "hsl(var(--foreground))",
+      }}
+    >
+      {/* HEADER */}
 
-      <div className="mb-5 text-xs text-muted-foreground">
-        Operations / Transaction /{" "}
-        <span className="text-sky-600 dark:text-sky-400">Reports</span>
-      </div>
+      <header className="mb-6">
+        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+          <div>
+            <h1 className="text-2xl font-semibold text-foreground">
+              Transaction Reports
+            </h1>
 
-      {/* Header */}
-
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-foreground">
-            Transaction Reports
-          </h1>
-
-          <p className="mt-1 text-sm text-muted-foreground">
-            Transaction activity and payment performance
-          </p>
-        </div>
-
-        <Button
-          type="button"
-          label="Export CSV"
-          icon="pi pi-download"
-          onClick={handleExport}
-          disabled={loading || filteredTransactions.length === 0}
-          className="!rounded-lg !border !border-sky-500/30 !bg-sky-500/10 !px-4 !py-2.5 !text-xs !font-semibold !text-sky-600 hover:!bg-sky-500/20 dark:!text-sky-400"
-        />
-      </div>
-
-      {/* Error */}
-
-      {error && (
-        <div className="mb-5 rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">
-          <div className="flex items-start gap-2">
-            <i className="pi pi-exclamation-circle mt-0.5" />
-
-            <div>
-              <div className="font-semibold">Failed to load report</div>
-
-              <div className="mt-1">{error}</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Token & Transaction Reporting Overview
             </div>
           </div>
+
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+
+            <Button
+              type="button"
+              label="Export CSV"
+              icon="pi pi-download"
+              onClick={handleExport}
+              disabled={loading || filteredTransactions.length === 0}
+              className="!rounded-xl !border !border-[#00A651]/30 !bg-[#00A651]/10 !px-4 !py-2.5 !text-xs !font-semibold !text-[#00A651] hover:!bg-[#00A651]/15 dark:!text-[#36C58A]"
+            />
+          </div>
+        </div>
+      </header>
+
+      {/* ERROR */}
+
+      {error && (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-300">
+          <div className="flex items-center gap-2">
+            <Activity className="h-4 w-4" />
+            <span>{error}</span>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => window.location.reload()}
+            className="rounded-lg border border-rose-500/30 px-3 py-1.5 text-xs font-semibold transition hover:bg-rose-500/10"
+          >
+            Retry
+          </button>
         </div>
       )}
 
-      {/* Filters */}
+      {/* FILTERS */}
 
-      <section className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
-        <div className="flex flex-wrap items-end gap-3">
-          {/* Period */}
+      <section className="rounded-2xl border border-border p-5 shadow-sm backdrop-blur transition-colors duration-300"
+        style={{
+          backgroundColor: "hsl(var(--card) / 0.7)",
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-[#00A651] dark:text-[#36C58A]" />
 
-          <div className="min-w-[190px]">
-            <div className="mb-2 text-[11px] font-semibold tracking-wider text-muted-foreground">
-              PERIOD
+          <div className="text-sm font-semibold text-foreground">
+            Report Filters
+          </div>
+        </div>
+
+        <div className="mt-1 text-xs text-muted-foreground">
+          Filter transaction reporting data
+        </div>
+
+        <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end">
+          <div className="w-full lg:max-w-[240px]">
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Period
             </div>
 
             <Dropdown
@@ -675,11 +678,9 @@ export default function TransactionReportingPage() {
             />
           </div>
 
-          {/* Transaction Type */}
-
-          <div className="min-w-[180px]">
-            <div className="mb-2 text-[11px] font-semibold tracking-wider text-muted-foreground">
-              TRANSACTION TYPE
+          <div className="w-full lg:max-w-[240px]">
+            <div className="mb-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              Transaction Type
             </div>
 
             <Dropdown
@@ -690,76 +691,82 @@ export default function TransactionReportingPage() {
             />
           </div>
 
-          {/* Apply */}
-
           <Button
             type="button"
             label="Apply"
             onClick={handleApply}
-            className="!rounded-lg !border !border-sky-500/30 !bg-sky-500/10 !px-4 !py-2.5 !text-xs !font-semibold !text-sky-600 hover:!bg-sky-500/20 dark:!text-sky-400"
+            className="!rounded-xl !border !border-[#00A651]/30 !bg-[#00A651]/10 !px-5 !py-3 !text-xs !font-semibold !text-[#00A651] hover:!bg-[#00A651]/15 dark:!text-[#36C58A]"
           />
         </div>
       </section>
 
-      {/* Summary Cards */}
+      {/* STATS */}
 
-      <div className="mt-6 grid grid-cols-1 gap-4 md:grid-cols-4">
-        {/* Total */}
+      <section className="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {stats.map((stat) => {
+          const Icon = stat.icon;
 
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
-          <div className="text-[11px] font-semibold tracking-wider text-muted-foreground">
-            TOTAL TRANSACTIONS
-          </div>
+          return (
+            <article
+              key={stat.id}
+              className="relative overflow-hidden rounded-2xl border border-border px-5 py-4 shadow-sm backdrop-blur transition-colors duration-300"
+              style={{
+                backgroundColor: "hsl(var(--card) / 0.7)",
+              }}
+            >
+              <div
+                className="absolute inset-0 bg-gradient-to-b from-foreground/[0.03] to-transparent dark:from-white/[0.04]"
+                aria-hidden
+              />
 
-          <div className="mt-2 text-2xl font-semibold text-foreground">
-            {summary.totalTransactions}
-          </div>
-        </div>
+              <div className="relative">
+                <div className="flex items-center justify-between">
+                  <Icon className="h-5 w-5 text-[#00A651] dark:text-[#36C58A]" />
 
-        {/* Successful */}
+                  {stat.id === "total" && (
+                    <span className="rounded-full bg-[#00A651]/10 px-2 py-1 text-[10px] font-medium text-[#008F45] dark:bg-[#36C58A]/10 dark:text-[#65D9AD]">
+                      REPORT
+                    </span>
+                  )}
+                </div>
 
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
-          <div className="text-[11px] font-semibold tracking-wider text-muted-foreground">
-            SUCCESSFUL
-          </div>
+                <div className="mt-4 text-2xl font-semibold tracking-tight text-foreground">
+                  {loading ? (
+                    <span className="animate-pulse">...</span>
+                  ) : stat.id === "volume" ? (
+                    `PKR ${formatAmount(stat.value)}`
+                  ) : (
+                    Number(stat.value).toLocaleString()
+                  )}
+                </div>
 
-          <div className="mt-2 text-2xl font-semibold text-emerald-600 dark:text-emerald-400">
-            {summary.successfulTransactions}
-          </div>
-        </div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  {stat.label}
+                </div>
 
-        {/* Failed */}
+                <div className="mt-3 text-xs font-semibold text-[#008F45] dark:text-[#4DD39E]">
+                  {stat.bottom}
+                </div>
+              </div>
 
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
-          <div className="text-[11px] font-semibold tracking-wider text-muted-foreground">
-            FAILED
-          </div>
+              <div
+                className={`absolute bottom-0 left-0 h-[2px] w-full ${stat.accent}`}
+              />
+            </article>
+          );
+        })}
+      </section>
 
-          <div className="mt-2 text-2xl font-semibold text-rose-600 dark:text-rose-400">
-            {summary.failedTransactions}
-          </div>
-        </div>
+      {/* CHARTS */}
 
-        {/* Volume */}
-
-        <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
-          <div className="text-[11px] font-semibold tracking-wider text-muted-foreground">
-            TOTAL VOLUME
-          </div>
-
-          <div className="mt-2 text-2xl font-semibold text-violet-600 dark:text-violet-400">
-            PKR {formatAmount(summary.totalVolume)}
-          </div>
-        </div>
-      </div>
-
-      {/* Charts */}
-
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
-        {/* Activity */}
-
-        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300 lg:col-span-2">
-          <div className="mb-4">
+      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300 lg:col-span-2"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div>
             <div className="text-sm font-semibold text-foreground">
               Transaction Activity
             </div>
@@ -769,21 +776,29 @@ export default function TransactionReportingPage() {
             </div>
           </div>
 
-          <div className="h-[280px]">
+          <div className="mt-5 h-[280px]">
             {monthData.labels.length > 0 ? (
-              <Chart type="line" data={monthData} options={chartOptions} />
+              <Chart
+                key={`transaction-activity-${darkMode}`}
+                type="line"
+                data={monthData}
+                options={chartOptions}
+              />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 No transaction data
               </div>
             )}
           </div>
-        </section>
+        </article>
 
-        {/* Type */}
-
-        <section className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
-          <div className="mb-4">
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div>
             <div className="text-sm font-semibold text-foreground">
               Transactions by Type
             </div>
@@ -793,336 +808,507 @@ export default function TransactionReportingPage() {
             </div>
           </div>
 
-          <div className="h-[280px]">
+          <div className="mt-5 h-[280px]">
             {typeData.labels.length > 0 ? (
-              <Chart type="doughnut" data={typeData} options={donutOptions} />
+              <Chart
+                key={`transaction-type-${darkMode}`}
+                type="doughnut"
+                data={typeData}
+                options={donutOptions}
+              />
             ) : (
               <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
                 No transaction type data
               </div>
             )}
           </div>
-        </section>
-      </div>
+        </article>
+      </section>
 
-      {/* Transaction Table */}
+      {/* SUMMARY INFORMATION */}
 
-      <section className="mt-6 overflow-hidden rounded-2xl border border-border bg-card p-5 shadow-sm transition-colors duration-300">
-        <div className="mb-4">
+      <section className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-2">
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
           <div className="text-sm font-semibold text-foreground">
-            Transaction Detail
+            Reporting Information
           </div>
 
           <div className="mt-1 text-xs text-muted-foreground">
-            Detailed transaction report from backend
+            Current filtered transaction state
           </div>
-        </div>
 
-        <div className="overflow-hidden rounded-2xl border border-border">
-          <DataTable
-            value={filteredTransactions}
-            dataKey="id"
-            paginator
-            rows={10}
-            rowsPerPageOptions={[10, 25, 50]}
-            rowHover
-            scrollable
-            scrollHeight="450px"
-            loading={loading}
-            emptyMessage={
-              loading ? "Loading transactions..." : "No transactions found."
-            }
-            className="theme-datatable"
-            tableStyle={{
-              minWidth: "1100px",
+          <div className="mt-5 flex items-center justify-between rounded-2xl border border-border bg-muted/30 p-5">
+            <div>
+              <div className="text-xs text-muted-foreground">
+                Filtered Transactions
+              </div>
+
+              <div className="mt-2 text-3xl font-semibold text-foreground">
+                {loading
+                  ? "..."
+                  : summary.totalTransactions.toLocaleString()}
+              </div>
+            </div>
+
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#00A651]/10 dark:bg-[#36C58A]/10">
+              <Activity className="h-6 w-6 text-[#00A651] dark:text-[#36C58A]" />
+            </div>
+          </div>
+        </article>
+
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div className="text-sm font-semibold text-foreground">
+            Transaction Volume
+          </div>
+
+          <div className="mt-1 text-xs text-muted-foreground">
+            Current filtered payment volume
+          </div>
+
+          <div className="mt-5 flex items-center justify-between rounded-2xl border border-border bg-muted/30 p-5">
+            <div>
+              <div className="text-xs text-muted-foreground">
+                Total Volume
+              </div>
+
+              <div className="mt-2 text-3xl font-semibold text-foreground">
+                {loading
+                  ? "..."
+                  : `PKR ${formatAmount(summary.totalVolume)}`}
+              </div>
+            </div>
+
+            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#00A651]/10 dark:bg-[#24B5CF]/10">
+              <TrendingUp className="h-6 w-6 text-[#00A651] dark:text-[#24B5CF]" />
+            </div>
+          </div>
+        </article>
+      </section>
+
+      {/* TRANSACTION INSIGHTS */}
+
+      <section className="mt-6">
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div>
+            <div className="text-sm font-semibold text-foreground">
+              Transaction Insights
+            </div>
+
+            <div className="mt-1 text-xs text-muted-foreground">
+              Operational transaction metrics
+            </div>
+          </div>
+
+          <div className="mt-5 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="h-4 w-4 text-emerald-500 dark:text-[#36C58A]" />
+
+                <span className="text-xs font-semibold text-foreground">
+                  Successful
+                </span>
+              </div>
+
+              <div className="mt-4 text-2xl font-semibold text-foreground">
+                {summary.successfulTransactions}
+              </div>
+
+              <div className="mt-2 text-xs text-muted-foreground">
+                Successful transactions
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-rose-500 dark:text-rose-400" />
+
+                <span className="text-xs font-semibold text-foreground">
+                  Failed
+                </span>
+              </div>
+
+              <div className="mt-4 text-2xl font-semibold text-foreground">
+                {summary.failedTransactions}
+              </div>
+
+              <div className="mt-2 text-xs text-rose-600 dark:text-rose-400">
+                Failed transactions
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-2">
+                <CreditCard className="h-4 w-4 text-[#00A651] dark:text-[#24B5CF]" />
+
+                <span className="text-xs font-semibold text-foreground">
+                  Total Transactions
+                </span>
+              </div>
+
+              <div className="mt-4 text-2xl font-semibold text-foreground">
+                {summary.totalTransactions}
+              </div>
+
+              <div className="mt-2 text-xs text-muted-foreground">
+                Current filtered data
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-muted/30 p-4">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-[#00A651] dark:text-[#36C58A]" />
+
+                <span className="text-xs font-semibold text-foreground">
+                  Total Volume
+                </span>
+              </div>
+
+              <div className="mt-4 text-2xl font-semibold text-foreground">
+                PKR {formatAmount(summary.totalVolume)}
+              </div>
+
+              <div className="mt-2 text-xs text-muted-foreground">
+                Current transaction volume
+              </div>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      {/* TRANSACTION DETAIL */}
+
+      <section className="mt-8">
+        <article
+          className="relative overflow-hidden rounded-2xl border border-border p-5 shadow-sm transition-colors duration-300"
+          style={{
+            backgroundColor: "hsl(var(--card) / 0.7)",
+          }}
+        >
+          <div>
+            <div className="mb-1 text-sm font-semibold text-foreground">
+              Transaction Detail
+            </div>
+
+            <div className="mb-4 text-xs text-muted-foreground">
+              Detailed transaction report from backend
+            </div>
+          </div>
+
+          <div
+            className="overflow-hidden rounded-2xl border border-border"
+            style={{
+              backgroundColor: "hsl(var(--muted) / 0.3)",
             }}
           >
-            {/* 1. Time */}
-
-            <Column
-              header="Time"
-              body={(row) => getTime(row)}
-            />
-
-            {/* 2. Transaction ID */}
-
-            <Column
-              header="Transaction ID"
-              body={(row) => (
-                <span className="font-medium text-foreground">
-                  {getTransactionId(row)}
-                </span>
-              )}
-            />
-
-            {/* 3. Token ID */}
-
-            <Column
-              header="Token ID"
-              body={(row) => getTokenId(row)}
-            />
-
-            {/* 4. Type */}
-
-            <Column
-              header="Type"
-              body={(row) => getTransactionType(row)}
-            />
-
-            {/* 5. Amount */}
-
-            <Column
-              header="Amount"
-              body={(row) => (
-                <span className="font-semibold text-foreground">
-                  {formatAmount(getAmount(row))}
-                </span>
-              )}
-            />
-
-            {/* 6. Currency */}
-
-            <Column
-              header="Currency"
-              body={(row) => getCurrencyCode(row)}
-            />
-
-            {/* 7. Reference */}
-
-            <Column
-              header="Reference"
-              body={(row) => getReferenceNumber(row)}
-            />
-
-            {/* 8. Status */}
-
-            <Column
-              header="Status"
-              body={(row) => {
-                const status = getStatus(row);
-
-                return (
-                  <span className={getStatusClass(status)}>
-                    {status}
-                  </span>
-                );
+            <DataTable
+              value={filteredTransactions}
+              dataKey="id"
+              paginator
+              rows={10}
+              rowsPerPageOptions={[10, 25, 50]}
+              rowHover
+              scrollable
+              scrollHeight="450px"
+              loading={loading}
+              emptyMessage={
+                loading
+                  ? "Loading transactions..."
+                  : "No transactions found."
+              }
+              className="theme-datatable"
+              tableStyle={{
+                minWidth: "1200px",
               }}
-            />
+            >
+              <Column
+                header="Time"
+                body={(row) => getTime(row)}
+              />
 
-            {/* 9. Date */}
+              <Column
+                header="Transaction ID"
+                body={(row) => (
+                  <span className="font-medium text-foreground">
+                    {getTransactionId(row)}
+                  </span>
+                )}
+              />
 
-            <Column
-              header="Date"
-              body={(row) => getDate(row) || "-"}
-            />
-          </DataTable>
-        </div>
+              <Column
+                header="Token ID"
+                body={(row) => getTokenId(row)}
+              />
+
+              <Column
+                header="Type"
+                body={(row) => getTransactionType(row)}
+              />
+
+              <Column
+                header="Amount"
+                body={(row) => (
+                  <span className="font-semibold text-foreground">
+                    {getCurrencyCode(row)}{" "}
+                    {formatAmount(getAmount(row))}
+                  </span>
+                )}
+              />
+
+              <Column
+                header="Currency"
+                body={(row) => getCurrencyCode(row)}
+              />
+
+              <Column
+                header="Reference"
+                body={(row) => getReferenceNumber(row)}
+              />
+
+              <Column
+                header="Status"
+                body={(row) => {
+                  const status = getStatus(row);
+
+                  return (
+                    <span className={getStatusClass(status)}>
+                      {status}
+                    </span>
+                  );
+                }}
+              />
+
+              <Column
+                header="Date"
+                body={(row) => getDate(row) || "-"}
+              />
+            </DataTable>
+          </div>
+        </article>
       </section>
 
       {/* PRIMEREACT THEME */}
 
       <style>{`
-  .theme-datatable .p-datatable-table {
-    background: transparent !important;
-  }
+        .theme-datatable .p-datatable-table {
+          background: transparent !important;
+        }
 
-  .theme-datatable .p-datatable-thead > tr > th {
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--muted-foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 10px !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
+        .theme-datatable .p-datatable-thead > tr > th {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--muted-foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          padding: 0.75rem 1rem !important;
+          font-size: 10px !important;
+          font-weight: 600 !important;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          white-space: nowrap;
+        }
 
-  .theme-datatable .p-datatable-tbody > tr {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    transition: background-color 0.2s ease;
-  }
+        .theme-datatable .p-datatable-tbody > tr {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          transition: background-color 0.2s ease;
+        }
 
-  .theme-datatable .p-datatable-tbody > tr > td {
-    background: transparent !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 0.875rem !important;
-  }
+        .theme-datatable .p-datatable-tbody > tr > td {
+          background: transparent !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          padding: 0.75rem 1rem !important;
+          font-size: 0.875rem !important;
+        }
 
-  .theme-datatable .p-datatable-tbody > tr:nth-child(even) {
-    background: hsl(var(--muted) / 0.35) !important;
-  }
+        .theme-datatable .p-datatable-tbody > tr:nth-child(even) {
+          background: hsl(var(--muted) / 0.35) !important;
+        }
 
-  .theme-datatable .p-datatable-tbody > tr:hover {
-    background: hsl(var(--primary) / 0.08) !important;
-  }
+        .theme-datatable .p-datatable-tbody > tr:hover {
+          background: hsl(var(--primary) / 0.08) !important;
+        }
 
-  .theme-datatable .p-paginator {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+        .theme-datatable .p-paginator {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
 
-  .theme-datatable .p-paginator .p-paginator-page,
-  .theme-datatable .p-paginator .p-paginator-first,
-  .theme-datatable .p-paginator .p-paginator-prev,
-  .theme-datatable .p-paginator .p-paginator-next,
-  .theme-datatable .p-paginator .p-paginator-last {
-    color: hsl(var(--foreground)) !important;
-    background: transparent !important;
-    border-radius: 0.5rem !important;
-  }
+        .theme-datatable .p-paginator .p-paginator-page,
+        .theme-datatable .p-paginator .p-paginator-first,
+        .theme-datatable .p-paginator .p-paginator-prev,
+        .theme-datatable .p-paginator .p-paginator-next,
+        .theme-datatable .p-paginator .p-paginator-last {
+          color: hsl(var(--foreground)) !important;
+          background: transparent !important;
+          border-radius: 0.5rem !important;
+        }
 
-  .theme-datatable .p-paginator .p-paginator-element:hover {
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--foreground)) !important;
-  }
+        .theme-datatable .p-paginator .p-paginator-element:hover {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
 
-  .theme-datatable .p-paginator .p-paginator-page.p-highlight {
-    background: hsl(var(--primary) / 0.15) !important;
-    color: hsl(var(--primary)) !important;
-  }
+        .theme-datatable .p-paginator .p-paginator-page.p-highlight {
+          background: ${darkMode
+            ? "rgba(36, 181, 207, 0.15)"
+            : "hsl(var(--primary) / 0.15)"} !important;
+          color: ${darkMode
+            ? "#24B5CF"
+            : "hsl(var(--primary))"} !important;
+        }
 
-  .theme-datatable .p-paginator .p-dropdown {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+        .theme-datatable .p-paginator .p-dropdown {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border: 1px solid hsl(var(--border)) !important;
+          border-radius: 0.5rem !important;
+        }
 
-  .theme-datatable .p-paginator .p-dropdown-label {
-    color: hsl(var(--foreground)) !important;
-    background: transparent !important;
-  }
+        .theme-datatable .p-paginator .p-dropdown .p-dropdown-label {
+          background: transparent !important;
+          color: hsl(var(--foreground)) !important;
+        }
 
-  .theme-datatable .p-paginator .p-dropdown-trigger {
-    color: hsl(var(--muted-foreground)) !important;
-    background: transparent !important;
-  }
+        .theme-datatable .p-paginator .p-dropdown .p-dropdown-trigger {
+          background: transparent !important;
+          color: hsl(var(--muted-foreground)) !important;
+        }
 
-  .theme-dropdown.p-dropdown,
-  .theme-datatable .p-dropdown {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+        .theme-datatable .p-paginator .p-dropdown:hover,
+        .theme-datatable .p-paginator .p-dropdown.p-focus {
+          border-color: hsl(var(--primary)) !important;
+          box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2) !important;
+        }
 
-  .theme-dropdown.p-dropdown:hover,
-  .theme-dropdown.p-dropdown.p-focus,
-  .theme-datatable .p-dropdown:hover,
-  .theme-datatable .p-dropdown.p-focus {
-    border-color: hsl(var(--primary)) !important;
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2) !important;
-  }
+        .theme-dropdown.p-dropdown,
+        .theme-datatable .p-dropdown {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
 
-  .theme-dropdown .p-dropdown-label,
-  .theme-datatable .p-dropdown-label {
-    color: hsl(var(--foreground)) !important;
-    background: transparent !important;
-  }
+        .theme-dropdown.p-dropdown:hover,
+        .theme-dropdown.p-dropdown.p-focus {
+          border-color: hsl(var(--primary)) !important;
+          box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2) !important;
+        }
 
-  .theme-dropdown .p-dropdown-label.p-placeholder {
-    color: hsl(var(--muted-foreground)) !important;
-  }
+        .theme-dropdown .p-dropdown-label,
+        .theme-datatable .p-dropdown .p-dropdown-label {
+          color: hsl(var(--foreground)) !important;
+          background: transparent !important;
+        }
 
-  .theme-dropdown .p-dropdown-trigger,
-  .theme-datatable .p-dropdown-trigger {
-    color: hsl(var(--muted-foreground)) !important;
-    background: transparent !important;
-  }
+        .theme-dropdown .p-dropdown-trigger,
+        .theme-datatable .p-dropdown .p-dropdown-trigger {
+          color: hsl(var(--muted-foreground)) !important;
+          background: transparent !important;
+        }
 
-  .p-dropdown-panel,
-  .p-dropdown-panel.p-component {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border: 1px solid hsl(var(--border)) !important;
-    border-radius: 10px !important;
-  }
+        .p-dropdown-panel {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border: 1px solid hsl(var(--border)) !important;
+          border-radius: 10px !important;
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper {
-    background: hsl(var(--card)) !important;
-  }
+        .p-dropdown-panel .p-dropdown-items {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          padding: 4px !important;
+        }
 
-  .p-dropdown-panel .p-dropdown-items {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    padding: 4px !important;
-  }
+        .p-dropdown-panel .p-dropdown-item {
+          background: transparent !important;
+          color: hsl(var(--foreground)) !important;
+          border-radius: 6px !important;
+        }
 
-  .p-dropdown-panel .p-dropdown-item {
-    background: transparent !important;
-    color: hsl(var(--foreground)) !important;
-    border-radius: 6px !important;
-  }
+        .p-dropdown-panel .p-dropdown-item:hover {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
 
-  .p-dropdown-panel .p-dropdown-item:hover {
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--foreground)) !important;
-  }
+        .p-dropdown-panel .p-dropdown-item.p-highlight {
+          background: ${darkMode
+            ? "rgba(36, 181, 207, 0.12)"
+            : "hsl(var(--primary) / 0.12)"} !important;
+          color: ${darkMode
+            ? "#24B5CF"
+            : "hsl(var(--primary))"} !important;
+        }
 
-  .p-dropdown-panel .p-dropdown-item.p-highlight {
-    background: hsl(var(--primary) / 0.12) !important;
-    color: hsl(var(--primary)) !important;
-  }
+        .theme-datatable .p-datatable-wrapper {
+          scrollbar-width: thin;
+          scrollbar-color: hsl(var(--muted-foreground) / 0.4)
+            hsl(var(--muted) / 0.3);
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.4)
-      hsl(var(--muted) / 0.3);
-  }
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar {
-    width: 8px;
-  }
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-track {
+          background: hsl(var(--muted) / 0.3);
+          border-radius: 999px;
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
-  }
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb {
+          background: hsl(var(--border));
+          border-radius: 999px;
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 999px;
-  }
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.5);
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
+        .p-dropdown-panel .p-dropdown-items-wrapper {
+          scrollbar-width: thin;
+          scrollbar-color: hsl(var(--muted-foreground) / 0.4)
+            hsl(var(--muted) / 0.3);
+        }
 
-  .theme-datatable .p-datatable-wrapper {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.4)
-      hsl(var(--muted) / 0.3);
-  }
+        .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar {
+          width: 8px;
+        }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+        .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-track {
+          background: hsl(var(--muted) / 0.3);
+        }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
-    border-radius: 999px;
-  }
+        .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb {
+          background: hsl(var(--border));
+          border-radius: 999px;
+        }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 999px;
-  }
+        .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.5);
+        }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
-
-  .theme-datatable .p-datatable-emptymessage > tr > td {
-    background: transparent !important;
-    color: hsl(var(--muted-foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    text-align: center;
-  }
-`}</style>
+        .theme-datatable .p-datatable-emptymessage > tr > td {
+          background: transparent !important;
+          color: hsl(var(--muted-foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          text-align: center;
+        }
+      `}</style>
     </div>
   );
 }

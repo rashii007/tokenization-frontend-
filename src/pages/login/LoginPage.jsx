@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Button } from "primereact/button";
 import "./LoginPage.css";
 import logo from "../../assets/images/logo.png";
+import RaastLogo from "../../assets/images/Raast-logo.png";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
@@ -27,19 +28,10 @@ export default function LoginPage() {
       return;
     }
 
-    if (
-      UserName === "superadmin" &&
-      password === "admin123"
-    ) {
-      localStorage.setItem(
-        "token",
-        "superadmin-token",
-      );
+    if (UserName === "superadmin" && password === "admin123") {
+      localStorage.setItem("token", "superadmin-token");
 
-      localStorage.setItem(
-        "name",
-        "superadmin",
-      );
+      localStorage.setItem("name", "superadmin");
 
       navigation("/dashboard");
     } else {
@@ -50,32 +42,28 @@ export default function LoginPage() {
   return (
     <div className="login-shell">
       <div className="login-card">
-
         <header className="login-header">
-          <img
-            src={logo}
-            alt="Token Vault"
-            className="login-logo"
-          />
+          {/* =========================
+              LOGO
+          ========================= */}
+          <div className="login-logo-box">
+            {/* Mindcraft Logo */}
+            <img src={logo} alt="Mindcraft" className="login-logo" />
 
-          <h1 className="login-title">
-            Token Vault Management System
-          </h1>
+            {/* RAAST Logo */}
+            <div className="login-logo-divider" />
 
-          <h2 className="login-subtitle">
-            Login to Your Account
-          </h2>
+            <img src={RaastLogo} alt="RAAST" className="login-raast-logo" />
+          </div>
+
+          <h1 className="login-title">Raast Token Vault Management System</h1>
+
+          <h2 className="login-subtitle">Login to Your Account</h2>
         </header>
 
-        <form
-          className="login-form"
-          onSubmit={handleLogin}
-        >
+        <form className="login-form" onSubmit={handleLogin}>
           <div className="login-field">
-            <label
-              htmlFor="username"
-              className="login-label"
-            >
+            <label htmlFor="username" className="login-label">
               Username
             </label>
 
@@ -89,10 +77,7 @@ export default function LoginPage() {
           </div>
 
           <div className="login-field">
-            <label
-              htmlFor="password"
-              className="login-label"
-            >
+            <label htmlFor="password" className="login-label">
               Password
             </label>
 
@@ -114,7 +99,6 @@ export default function LoginPage() {
             className="login-button"
           />
         </form>
-
       </div>
     </div>
   );

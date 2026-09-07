@@ -38,12 +38,12 @@
 }
 
 .token-create:hover {
-  box-shadow: 0 18px 36px hsl(var(--foreground) / 0.08);
+  box-shadow: 0 18px 36px rgba(0, 166, 81, 0.08);
 }
 
 .token-create__icon {
   font-size: 38px;
-  color: hsl(var(--primary));
+  color: #00A651;
 }
 
 .token-create__label {
@@ -102,8 +102,8 @@
 }
 
 .search-bar__input .p-inputtext:focus {
-  border-color: hsl(var(--primary));
-  box-shadow: 0 0 0 2px hsl(var(--primary) / 0.12);
+  border-color: #00A651;
+  box-shadow: 0 0 0 2px rgba(0, 166, 81, 0.12);
 }
 
 /* =========================================================
@@ -114,7 +114,7 @@
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  border: 2px solid hsl(var(--primary));
+  border: 2px solid #00A651;
   position: relative;
   display: inline-block;
 }
@@ -124,7 +124,7 @@
   position: absolute;
   width: 8px;
   height: 2px;
-  background: hsl(var(--primary));
+  background: #00A651;
   border-radius: 1px;
   bottom: -4px;
   right: -5px;
@@ -153,7 +153,7 @@
 }
 
 .search-bar__filter:hover {
-  color: hsl(var(--primary));
+  color: #00A651;
 }
 
 .search-bar__filter-label {
@@ -174,7 +174,7 @@
   background: hsl(var(--card));
   border: 1px solid hsl(var(--border));
   border-radius: 24px;
-  box-shadow: 0 28px 48px hsl(var(--foreground) / 0.08);
+  box-shadow: 0 28px 48px rgba(0, 166, 81, 0.08);
   overflow: hidden;
   transition:
     background-color 0.2s ease,
@@ -186,7 +186,7 @@
 ========================================================= */
 
 .token-table__cell--currency {
-  color: #0ea559;
+  color: #00A651;
   font-weight: 600;
 }
 
@@ -224,12 +224,12 @@
 }
 
 .token-checkbox.p-checkbox .p-checkbox-box:hover {
-  border-color: hsl(var(--primary));
+  border-color: #00A651;
 }
 
 .token-checkbox.p-checkbox.p-highlight .p-checkbox-box {
-  background: #0ea559;
-  border-color: #0ea559;
+  background: #00A651;
+  border-color: #00A651;
 }
 
 .token-checkbox.p-checkbox .p-checkbox-box .p-checkbox-icon {
@@ -244,8 +244,8 @@
 }
 
 .token-checkbox.p-checkbox.p-disabled.p-highlight .p-checkbox-box {
-  background: #0ea559;
-  border-color: #0ea559;
+  background: #00A651;
+  border-color: #00A651;
 }
 
 .token-checkbox.p-checkbox.p-disabled .p-checkbox-box .p-checkbox-icon {

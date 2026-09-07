@@ -4,12 +4,9 @@
   flex-direction: column;
   justify-content: center;
   align-items: center;
-
   padding: 40px 24px;
-
   background: hsl(var(--background));
   color: hsl(var(--foreground));
-
   transition:
     background-color 0.25s ease,
     color 0.25s ease;
@@ -22,51 +19,103 @@ HEADER
 .login-header {
   width: 100%;
   max-width: 520px;
-
   text-align: center;
 }
 
-.login-logo {
-  display: block;
-  margin: 0 auto;
-  width: 220px;
-  height: 150px;
-  object-fit: contain;
+/* =========================================================
+MINDCRAFT + RAAST LOGO
+========================================================= */
 
-  /* Light mode */
+.login-logo-box {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 18px !important;
+  padding: 12px 18px !important;
+  border: 1px solid rgba(0, 166, 81, 0.2) !important;
+  border-radius: 14px !important;
+  background: rgba(0, 166, 81, 0.05) !important;
+  box-shadow: 0 3px 10px rgba(15, 23, 42, 0.06) !important;
+  backdrop-filter: blur(8px) !important;
+  transition:
+    background 0.2s ease,
+    border-color 0.2s ease;
+}
+
+.login-logo-box:hover {
+  background: rgba(0, 166, 81, 0.1) !important;
+  border-color: rgba(0, 166, 81, 0.3) !important;
+}
+
+/* =========================================================
+MINDCRAFT LOGO
+========================================================= */
+
+.login-logo-box .login-logo {
+  display: block !important;
+  width: auto !important;
+  height: 100px !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  object-fit: contain !important;
+  object-position: center !important;
   filter: brightness(0);
 }
 
-/* Dark mode */
-.dark .login-logo {
+/* =========================================================
+DARK MODE MINDCRAFT LOGO
+========================================================= */
+
+.dark .login-logo-box .login-logo {
   filter: brightness(0) invert(1);
 }
 
+/* =========================================================
+RAAST DIVIDER
+========================================================= */
 
+.login-logo-divider {
+  width: 1px !important;
+  min-width: 1px !important;
+  height: 98px !important;
+  background: hsl(var(--border)) !important;
+}
+
+/* =========================================================
+RAAST LOGO
+========================================================= */
+
+.login-logo-box .login-raast-logo {
+  display: block !important;
+  width: auto !important;
+  height: 100px !important;
+  max-width: 145px !important;
+  min-width: 0 !important;
+  margin: 0 !important;
+  object-fit: contain !important;
+  object-position: center !important;
+}
+
+/* =========================================================
+TITLE
+========================================================= */
 
 .login-title {
-  margin: 0;
-
+  margin: 18px 0 0;
   color: hsl(var(--foreground));
-
   font-family: "Inter", sans-serif;
-
   font-size: 32px;
   font-weight: 700;
-
   line-height: 1.2;
 }
 
 .login-subtitle {
   margin: 12px 0 0;
-
   color: hsl(var(--muted-foreground));
-
   font-family: "Inter", sans-serif;
-
   font-size: 14px;
   font-weight: 400;
-
   line-height: 1.5;
 }
 
@@ -77,24 +126,15 @@ FORM
 .login-form {
   width: 100%;
   max-width: 520px;
-
   margin-top: 32px;
   padding: 32px;
-
   display: grid;
-
   gap: 20px;
-
   border: 1px solid hsl(var(--border));
-
   border-radius: 20px;
-
   background: hsl(var(--card));
-
   color: hsl(var(--foreground));
-
   box-shadow: 0 10px 30px hsl(var(--foreground) / 0.08);
-
   transition:
     background-color 0.25s ease,
     border-color 0.25s ease,
@@ -116,27 +156,16 @@ INPUT
 .login-input.p-inputtext,
 .login-password-input.p-inputtext {
   width: 100%;
-
   height: 52px;
-
   border-radius: 12px;
-
   border: 1px solid hsl(var(--border));
-
   padding: 0 16px;
-
   background: hsl(var(--background));
-
   color: hsl(var(--foreground));
-
   font-family: "Inter", sans-serif;
-
   font-size: 15px;
-
   outline: none;
-
   box-shadow: none;
-
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
@@ -151,7 +180,6 @@ PLACEHOLDER
 .login-input.p-inputtext::placeholder,
 .login-password-input.p-inputtext::placeholder {
   color: hsl(var(--muted-foreground));
-
   opacity: 1;
 }
 
@@ -161,20 +189,18 @@ INPUT HOVER
 
 .login-input.p-inputtext:hover,
 .login-password-input.p-inputtext:hover {
-  border-color: hsl(var(--primary));
+  border-color: rgba(0, 166, 81, 0.55);
 }
 
 /* =========================================================
-INPUT FOCUS
+INPUT FOCUS - LIGHT GREEN SHADOW
 ========================================================= */
 
 .login-input.p-inputtext:focus,
 .login-password-input.p-inputtext:focus {
-  border-color: hsl(var(--primary));
-
+  border-color: rgba(0, 166, 81, 0.65);
   background: hsl(var(--background));
-
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.15);
+  box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.12);
 }
 
 /* =========================================================
@@ -183,33 +209,24 @@ BUTTON
 
 .login-button.p-button {
   width: 100%;
-
   height: 52px;
-
   margin-top: 8px;
-
   border-radius: 12px;
-
-  border: 1px solid hsl(var(--primary));
-
-  background: hsl(var(--primary));
-
-  color: hsl(var(--primary-foreground));
-
+  border: 1px solid #00a651;
+  background: linear-gradient(135deg, #009b4d 0%, #00a651 65%, #087a46 100%);
+  color: #ffffff;
   justify-content: center;
-
   text-align: center;
-
   font-family: "Inter", sans-serif;
-
   font-size: 15px;
-
   font-weight: 600;
-
-  box-shadow: 0 8px 20px hsl(var(--primary) / 0.18);
-
+  box-shadow:
+    0 8px 20px rgba(15, 23, 42, 0.16),
+    0 4px 12px rgba(0, 166, 81, 0.14);
   transition:
     transform 0.2s ease,
+    background 0.2s ease,
+    border-color 0.2s ease,
     box-shadow 0.2s ease,
     opacity 0.2s ease;
 }
@@ -220,12 +237,12 @@ BUTTON HOVER
 
 .login-button.p-button:hover {
   transform: translateY(-1px);
-
-  background: hsl(var(--primary));
-
-  color: hsl(var(--primary-foreground));
-
-  box-shadow: 0 10px 25px hsl(var(--primary) / 0.28);
+  background: linear-gradient(135deg, #008f45 0%, #00a651 65%, #075e3b 100%);
+  border-color: #00a651;
+  color: #ffffff;
+  box-shadow:
+    0 10px 25px rgba(15, 23, 42, 0.22),
+    0 5px 15px rgba(0, 166, 81, 0.18);
 }
 
 /* =========================================================
@@ -241,7 +258,9 @@ BUTTON FOCUS
 ========================================================= */
 
 .login-button.p-button:focus {
-  box-shadow: 0 0 0 3px hsl(var(--primary) / 0.2);
+  box-shadow:
+    0 0 0 3px rgba(0, 166, 81, 0.2),
+    0 8px 20px rgba(15, 23, 42, 0.14);
 }
 
 /* =========================================================
@@ -250,7 +269,6 @@ BUTTON DISABLED
 
 .login-button.p-button:disabled {
   opacity: 0.6;
-
   cursor: not-allowed;
 }
 
@@ -286,7 +304,6 @@ DARK MODE
 .dark .login-form {
   background: hsl(var(--card));
   border-color: hsl(var(--border));
-
   box-shadow: 0 10px 30px hsl(0 0% 0% / 0.35);
 }
 
@@ -294,7 +311,6 @@ DARK MODE
 .dark .login-password-input.p-inputtext {
   background: hsl(var(--background));
   color: hsl(var(--foreground));
-
   border-color: hsl(var(--border));
 }
 
@@ -318,20 +334,47 @@ MOBILE
 
   .login-form {
     padding: 24px 20px;
-
     margin-top: 24px;
   }
 
   .login-input.p-inputtext,
   .login-password-input.p-inputtext {
     height: 50px;
-
     font-size: 14px;
   }
 
   .login-button.p-button {
     height: 50px;
-
     font-size: 14px;
+  }
+
+  /* =========================================================
+  LOGO
+  ========================================================= */
+
+  .login-logo-box {
+    gap: 14px !important;
+    padding: 10px 14px !important;
+    max-width: calc(100vw - 32px);
+  }
+
+  .login-logo-box .login-logo {
+    width: auto !important;
+    height: 54px !important;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  .login-logo-divider {
+    width: 1px !important;
+    height: 46px !important;
+  }
+
+  .login-logo-box .login-raast-logo {
+    width: auto !important;
+    height: 44px !important;
+    max-width: 115px !important;
+    min-width: 0 !important;
   }
 }

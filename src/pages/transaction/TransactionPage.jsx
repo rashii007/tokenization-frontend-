@@ -38,7 +38,6 @@ export default function TransactionPage() {
     const fetchTransactions = async () => {
       try {
         const response = await api.get("/transaction/portal");
-
         const data = response.data?.data ?? response.data;
 
         setTransactions(Array.isArray(data) ? data : data?.transactions || []);
@@ -215,19 +214,20 @@ export default function TransactionPage() {
 
     link.href = url;
     link.download = "transactions.csv";
+
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
 
     URL.revokeObjectURL(url);
   };
 
   return (
-    <div className="mx-auto min-h-screen w-full max-w-7xl bg-background px-6 py-8 text-foreground transition-colors duration-300">
-      {/* Breadcrumb */}
+    <div className="transaction-page mx-auto min-h-screen w-full max-w-7xl bg-background px-6 py-8 text-foreground transition-colors duration-300">
       <div className="mb-5 text-xs text-muted-foreground">
         Operations / Transaction
       </div>
 
-      {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-4">
         <div>
           <h1 className="text-2xl font-semibold text-foreground">
@@ -239,10 +239,8 @@ export default function TransactionPage() {
         </div>
       </div>
 
-      {/* Filters */}
       <div className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
         <div className="flex flex-wrap items-end gap-3">
-          {/* Search */}
           <div className="min-w-[280px] flex-1">
             <label className="mb-2 block text-xs font-medium text-muted-foreground">
               Search
@@ -261,40 +259,9 @@ export default function TransactionPage() {
                 panelClassName="theme-search-suggestions"
                 inputClassName="theme-page-input w-full !rounded-xl !border !border-border !bg-background !py-2.5 !pl-9 !text-sm !text-foreground placeholder:!text-muted-foreground"
               />
-              <style>{`
-  .theme-search-suggestions {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border: 1px solid hsl(var(--border)) !important;
-    border-radius: 10px !important;
-  }
-
-  .theme-search-suggestions .p-autocomplete-items {
-    background: hsl(var(--card)) !important;
-    padding: 4px !important;
-  }
-
-  .theme-search-suggestions .p-autocomplete-item {
-    background: transparent !important;
-    color: hsl(var(--foreground)) !important;
-    border-radius: 6px !important;
-    padding: 0.65rem 0.75rem !important;
-  }
-
-  .theme-search-suggestions .p-autocomplete-item:hover {
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--foreground)) !important;
-  }
-
-  .theme-search-suggestions .p-autocomplete-item.p-highlight {
-    background: hsl(var(--primary) / 0.12) !important;
-    color: hsl(var(--primary)) !important;
-  }
-`}</style>
             </div>
           </div>
 
-          {/* Transaction Type */}
           <div className="min-w-[170px]">
             <label className="mb-2 block text-xs font-medium text-muted-foreground">
               Transaction Type
@@ -310,7 +277,6 @@ export default function TransactionPage() {
             />
           </div>
 
-          {/* Status */}
           <div className="min-w-[140px]">
             <label className="mb-2 block text-xs font-medium text-muted-foreground">
               Status
@@ -326,7 +292,6 @@ export default function TransactionPage() {
             />
           </div>
 
-          {/* Clear */}
           <Button
             type="button"
             label="Clear"
@@ -335,18 +300,16 @@ export default function TransactionPage() {
             className="!rounded-lg !border !border-border !bg-muted !px-4 !py-2.5 !text-xs !text-foreground hover:!bg-muted/80"
           />
 
-          {/* Export */}
           <Button
             type="button"
             label="Export"
             icon="pi pi-download"
             onClick={exportCsv}
-            className="!rounded-lg !border !border-border !bg-muted !px-4 !py-2.5 !text-xs !text-foreground hover:!bg-muted/80"
+            className="!rounded-lg !border !border-[#00A651]/30 !bg-[#00A651]/10 !px-4 !py-2.5 !text-xs !font-semibold !text-[#00A651] hover:!bg-[#00A651]/15"
           />
         </div>
       </div>
 
-      {/* Result Count */}
       <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
         <span>
           Showing{" "}
@@ -356,7 +319,6 @@ export default function TransactionPage() {
         </span>
       </div>
 
-      {/* Table */}
       <section className="mt-4 overflow-hidden rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
         <DataTable
           value={filteredTransactions}
@@ -372,8 +334,10 @@ export default function TransactionPage() {
         >
           <Column
             header="Transaction ID"
+            headerClassName="theme-table-header"
+            bodyClassName="theme-table-body"
             body={(row) => (
-              <span className="font-medium text-primary">
+              <span className="font-medium text-[#00A651]">
                 {row.transactionId}
               </span>
             )}
@@ -381,6 +345,8 @@ export default function TransactionPage() {
 
           <Column
             header="Token ID"
+            headerClassName="theme-table-header"
+            bodyClassName="theme-table-body"
             body={(row) => (
               <span className="text-foreground">{row.tokenId}</span>
             )}
@@ -388,6 +354,8 @@ export default function TransactionPage() {
 
           <Column
             header="Transaction Type"
+            headerClassName="theme-table-header"
+            bodyClassName="theme-table-body"
             body={(row) => (
               <span className="text-foreground">{row.transactionType}</span>
             )}
@@ -395,6 +363,8 @@ export default function TransactionPage() {
 
           <Column
             header="Amount"
+            headerClassName="theme-table-header"
+            bodyClassName="theme-table-body"
             body={(row) => (
               <span className="font-semibold text-foreground">
                 {Number(row.amount).toLocaleString()}
@@ -404,6 +374,8 @@ export default function TransactionPage() {
 
           <Column
             header="Reference"
+            headerClassName="theme-table-header"
+            bodyClassName="theme-table-body"
             body={(row) => (
               <span className="text-muted-foreground">
                 {row.referenceNumber}
@@ -413,6 +385,8 @@ export default function TransactionPage() {
 
           <Column
             header="Date"
+            headerClassName="theme-table-header"
+            bodyClassName="theme-table-body"
             body={(row) => (
               <span className="text-muted-foreground">
                 {row.transactionDate}
@@ -422,6 +396,8 @@ export default function TransactionPage() {
 
           <Column
             header="Status"
+            headerClassName="theme-table-header"
+            bodyClassName="theme-table-body"
             body={(row) => (
               <span
                 className={
@@ -444,9 +420,10 @@ export default function TransactionPage() {
 
           <Column
             header="Actions"
+            headerClassName="theme-table-header"
+            bodyClassName="theme-table-body"
             body={(row) => (
               <div className="flex items-center gap-3">
-                {/* Edit */}
                 <button
                   type="button"
                   onClick={() => openEdit(row)}
@@ -456,7 +433,6 @@ export default function TransactionPage() {
                   <i className="pi pi-pencil text-xs" />
                 </button>
 
-                {/* Activate / Deactivate */}
                 <button
                   type="button"
                   onClick={() => openStatusDialog(row)}
@@ -467,7 +443,6 @@ export default function TransactionPage() {
                   {row.status === "active" ? "Deactivate" : "Activate"}
                 </button>
 
-                {/* Delete */}
                 <button
                   type="button"
                   onClick={() => openDeleteDialog(row)}
@@ -483,241 +458,314 @@ export default function TransactionPage() {
       </section>
 
       <style>{`
-  /* =========================
-     DATA TABLE
-  ========================= */
+        .transaction-page .theme-page-input,
+        .transaction-page .theme-page-dropdown {
+          transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease;
+        }
 
-  .theme-datatable .p-datatable-table {
-    background: transparent !important;
-  }
+        .transaction-page .theme-page-input:hover,
+        .transaction-page .theme-page-dropdown:hover {
+          border-color: rgba(0, 166, 81, 0.55) !important;
+        }
 
-  .theme-datatable .p-datatable-thead > tr > th {
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--muted-foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 10px !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-  }
+        .transaction-page .theme-page-input:focus,
+        .transaction-page .theme-page-input:focus-visible,
+        .transaction-page .theme-page-dropdown.p-focus {
+          border-color: rgba(0, 166, 81, 0.65) !important;
+          box-shadow: 0 0 0 3px rgba(0, 166, 81, 0.12) !important;
+          outline: none !important;
+        }
 
-  .theme-datatable .p-datatable-tbody > tr {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    transition: background-color 0.2s ease;
-  }
+        .theme-search-suggestions {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border: 1px solid hsl(var(--border)) !important;
+          border-radius: 10px !important;
+          box-shadow: 0 10px 30px hsl(var(--foreground) / 0.12) !important;
+        }
 
-  .theme-datatable .p-datatable-tbody > tr > td {
-    background: transparent !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 0.875rem !important;
-  }
+        .theme-search-suggestions .p-autocomplete-items {
+          background: hsl(var(--card)) !important;
+          padding: 4px !important;
+        }
 
-  .theme-datatable .p-datatable-tbody > tr:nth-child(even) {
-    background: hsl(var(--muted) / 0.35) !important;
-  }
+        .theme-search-suggestions .p-autocomplete-item {
+          background: transparent !important;
+          color: hsl(var(--foreground)) !important;
+          border-radius: 6px !important;
+          padding: 0.65rem 0.75rem !important;
+        }
 
-  .theme-datatable .p-datatable-tbody > tr:hover {
-    background: hsl(var(--primary) / 0.08) !important;
-  }
+        .theme-search-suggestions .p-autocomplete-item:hover {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
 
-  /* =========================
-     PAGINATOR
-  ========================= */
+        .theme-search-suggestions .p-autocomplete-item.p-highlight {
+          background: rgba(0, 166, 81, 0.12) !important;
+          color: #00a651 !important;
+        }
 
-  .theme-datatable .p-paginator {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+        .theme-datatable .p-datatable-table {
+          background: transparent !important;
+        }
 
-  .theme-datatable .p-paginator .p-paginator-page,
-  .theme-datatable .p-paginator .p-paginator-first,
-  .theme-datatable .p-paginator .p-paginator-prev,
-  .theme-datatable .p-paginator .p-paginator-next,
-  .theme-datatable .p-paginator .p-paginator-last {
-    color: hsl(var(--foreground)) !important;
-    background: transparent !important;
-    border-radius: 0.5rem !important;
-  }
+        .theme-datatable .p-datatable-thead > tr > th {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--muted-foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          padding: 0.75rem 1rem !important;
+          font-size: 10px !important;
+          font-weight: 600 !important;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          white-space: nowrap;
+        }
 
-  .theme-datatable .p-paginator .p-paginator-element:hover {
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--foreground)) !important;
-  }
+        .theme-datatable .p-datatable-tbody > tr {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          transition: background-color 0.2s ease;
+        }
 
-  .theme-datatable .p-paginator .p-paginator-page.p-highlight {
-    background: hsl(var(--primary) / 0.15) !important;
-    color: hsl(var(--primary)) !important;
-  }
+        .theme-datatable .p-datatable-tbody > tr > td {
+          background: transparent !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          padding: 0.75rem 1rem !important;
+          font-size: 0.875rem !important;
+        }
 
-  /* =========================
-     PAGINATOR DROPDOWN
-  ========================= */
+        .theme-datatable .p-datatable-tbody > tr:nth-child(even) {
+          background: hsl(var(--muted) / 0.35) !important;
+        }
 
-  .theme-datatable .p-paginator .p-dropdown {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+        .theme-datatable .p-datatable-tbody > tr:hover {
+          background: rgba(0, 166, 81, 0.06) !important;
+        }
 
-  .theme-datatable .p-paginator .p-dropdown-label {
-    color: hsl(var(--foreground)) !important;
-    background: transparent !important;
-  }
+        .theme-datatable .p-paginator {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
 
-  .theme-datatable .p-paginator .p-dropdown-trigger {
-    color: hsl(var(--muted-foreground)) !important;
-    background: transparent !important;
-  }
+        .theme-datatable .p-paginator .p-paginator-page,
+        .theme-datatable .p-paginator .p-paginator-first,
+        .theme-datatable .p-paginator .p-paginator-prev,
+        .theme-datatable .p-paginator .p-paginator-next,
+        .theme-datatable .p-paginator .p-paginator-last {
+          color: hsl(var(--foreground)) !important;
+          background: transparent !important;
+          border-radius: 0.5rem !important;
+        }
 
-  /* =========================
-     ALL DROPDOWNS
-  ========================= */
+        .theme-datatable .p-paginator .p-paginator-element:hover {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
 
-  .theme-dropdown.p-dropdown,
-  .theme-datatable .p-dropdown {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+        .theme-datatable .p-paginator .p-paginator-page.p-highlight {
+          background: rgba(0, 166, 81, 0.15) !important;
+          color: #00a651 !important;
+        }
 
-  .theme-dropdown.p-dropdown:hover,
-  .theme-dropdown.p-dropdown.p-focus,
-  .theme-datatable .p-dropdown:hover,
-  .theme-datatable .p-dropdown.p-focus {
-    border-color: hsl(var(--primary)) !important;
-    box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2) !important;
-  }
+        .theme-datatable .p-paginator .p-dropdown {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
 
-  .theme-dropdown .p-dropdown-label,
-  .theme-datatable .p-dropdown-label {
-    color: hsl(var(--foreground)) !important;
-    background: transparent !important;
-  }
+        .theme-datatable .p-paginator .p-dropdown-label {
+          color: hsl(var(--foreground)) !important;
+          background: transparent !important;
+        }
 
-  .theme-dropdown .p-dropdown-label.p-placeholder {
-    color: hsl(var(--muted-foreground)) !important;
-  }
+        .theme-datatable .p-paginator .p-dropdown-trigger {
+          color: hsl(var(--muted-foreground)) !important;
+          background: transparent !important;
+        }
 
-  .theme-dropdown .p-dropdown-trigger,
-  .theme-datatable .p-dropdown-trigger {
-    color: hsl(var(--muted-foreground)) !important;
-    background: transparent !important;
-  }
+        .theme-dropdown-panel {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border: 1px solid hsl(var(--border)) !important;
+          border-radius: 10px !important;
+          box-shadow: 0 10px 30px hsl(var(--foreground) / 0.12) !important;
+        }
 
-  /* =========================
-     DROPDOWN POPUP
-  ========================= */
+        .theme-dropdown-panel .p-dropdown-items-wrapper {
+          background: hsl(var(--card)) !important;
+        }
 
-  .p-dropdown-panel,
-  .p-dropdown-panel.p-component {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border: 1px solid hsl(var(--border)) !important;
-    border-radius: 10px !important;
-  }
+        .theme-dropdown-panel .p-dropdown-items {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          padding: 4px !important;
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper {
-    background: hsl(var(--card)) !important;
-  }
+        .theme-dropdown-panel .p-dropdown-item {
+          background: transparent !important;
+          color: hsl(var(--foreground)) !important;
+          border-radius: 6px !important;
+          padding: 0.65rem 0.75rem !important;
+        }
 
-  .p-dropdown-panel .p-dropdown-items {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    padding: 4px !important;
-  }
+        .theme-dropdown-panel .p-dropdown-item:hover {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
 
-  .p-dropdown-panel .p-dropdown-item {
-    background: transparent !important;
-    color: hsl(var(--foreground)) !important;
-    border-radius: 6px !important;
-  }
+        .theme-dropdown-panel .p-dropdown-item.p-highlight {
+          background: rgba(0, 166, 81, 0.12) !important;
+          color: #00a651 !important;
+        }
 
-  .p-dropdown-panel .p-dropdown-item:hover {
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--foreground)) !important;
-  }
+        .theme-dropdown-panel .p-dropdown-items-wrapper {
+          scrollbar-width: thin;
+          scrollbar-color:
+            hsl(var(--muted-foreground) / 0.4)
+            hsl(var(--muted) / 0.3);
+        }
 
-  .p-dropdown-panel .p-dropdown-item.p-highlight {
-    background: hsl(var(--primary) / 0.12) !important;
-    color: hsl(var(--primary)) !important;
-  }
+        .theme-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar {
+          width: 8px;
+        }
 
-  /* =========================
-     DROPDOWN SCROLLBAR
-  ========================= */
+        .theme-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-track {
+          background: hsl(var(--muted) / 0.3);
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.4)
-      hsl(var(--muted) / 0.3);
-  }
+        .theme-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb {
+          background: hsl(var(--border));
+          border-radius: 999px;
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar {
-    width: 8px;
-  }
+        .theme-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.5);
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
-  }
+        .theme-datatable .p-datatable-wrapper {
+          scrollbar-width: thin;
+          scrollbar-color:
+            hsl(var(--muted-foreground) / 0.4)
+            hsl(var(--muted) / 0.3);
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 999px;
-  }
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar {
+          width: 8px;
+          height: 8px;
+        }
 
-  .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-track {
+          background: hsl(var(--muted) / 0.3);
+          border-radius: 999px;
+        }
 
-  /* =========================
-     TABLE SCROLLBAR
-  ========================= */
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb {
+          background: hsl(var(--border));
+          border-radius: 999px;
+        }
 
-  .theme-datatable .p-datatable-wrapper {
-    scrollbar-width: thin;
-    scrollbar-color: hsl(var(--muted-foreground) / 0.4)
-      hsl(var(--muted) / 0.3);
-  }
+        .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
+          background: hsl(var(--muted-foreground) / 0.5);
+        }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+        .theme-datatable .p-datatable-emptymessage > tr > td {
+          background: transparent !important;
+          color: hsl(var(--muted-foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+          text-align: center;
+        }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
-    border-radius: 999px;
-  }
+        .transaction-page .table-action-btn,
+        .transaction-page .table-status-btn {
+          transition:
+            background-color 0.2s ease,
+            border-color 0.2s ease,
+            color 0.2s ease,
+            transform 0.2s ease;
+        }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 999px;
-  }
+        .transaction-page .table-action-btn {
+          display: inline-flex;
+          height: 32px;
+          width: 32px;
+          align-items: center;
+          justify-content: center;
+          border-radius: 8px;
+          border: 1px solid hsl(var(--border));
+          background: hsl(var(--muted) / 0.45);
+          color: hsl(var(--muted-foreground));
+        }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
+        .transaction-page .table-action-btn:hover {
+          transform: translateY(-1px);
+        }
 
-  /* =========================
-     EMPTY MESSAGE
-  ========================= */
+        .transaction-page .table-action-btn.edit:hover {
+          border-color: rgba(0, 166, 81, 0.35);
+          background: rgba(0, 166, 81, 0.1);
+          color: #00a651;
+        }
 
-  .theme-datatable .p-datatable-emptymessage > tr > td {
-    background: transparent !important;
-    color: hsl(var(--muted-foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    text-align: center;
-  }
-`}</style>
+        .transaction-page .table-action-btn.delete:hover {
+          border-color: rgba(239, 68, 68, 0.3);
+          background: rgba(239, 68, 68, 0.08);
+          color: rgb(220, 38, 38);
+        }
 
-      {/* Edit Dialog */}
+        .transaction-page .table-status-btn {
+          border-radius: 8px;
+          border: 1px solid rgba(0, 166, 81, 0.25);
+          background: rgba(0, 166, 81, 0.08);
+          padding: 0.45rem 0.7rem;
+          font-size: 11px;
+          font-weight: 600;
+          color: #00a651;
+        }
+
+        .transaction-page .table-status-btn:hover {
+          border-color: rgba(0, 166, 81, 0.4);
+          background: rgba(0, 166, 81, 0.14);
+        }
+
+        .transaction-page .table-status-btn.deactivate {
+          border-color: rgba(245, 158, 11, 0.25);
+          background: rgba(245, 158, 11, 0.08);
+          color: rgb(217, 119, 6);
+        }
+
+        .transaction-page .table-status-btn.deactivate:hover {
+          border-color: rgba(245, 158, 11, 0.4);
+          background: rgba(245, 158, 11, 0.14);
+        }
+
+        .transaction-page .theme-dialog .p-dialog-header,
+        .transaction-page .theme-dialog .p-dialog-content {
+          background: hsl(var(--card)) !important;
+          color: hsl(var(--foreground)) !important;
+          border-color: hsl(var(--border)) !important;
+        }
+
+        .transaction-page .theme-dialog .p-dialog-header {
+          border-bottom: 1px solid hsl(var(--border)) !important;
+        }
+
+        .transaction-page .theme-dialog .p-dialog-header-close {
+          color: hsl(var(--muted-foreground)) !important;
+          border-radius: 8px !important;
+        }
+
+        .transaction-page .theme-dialog .p-dialog-header-close:hover {
+          background: hsl(var(--muted)) !important;
+          color: hsl(var(--foreground)) !important;
+        }
+      `}</style>
+
       <Dialog
         visible={editOpen}
         onHide={() => {
@@ -733,7 +781,6 @@ export default function TransactionPage() {
       >
         {editForm && (
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {/* Transaction ID */}
             <div>
               <label className="mb-2 block text-xs text-muted-foreground">
                 Transaction ID
@@ -746,7 +793,6 @@ export default function TransactionPage() {
               />
             </div>
 
-            {/* Token ID */}
             <div>
               <label className="mb-2 block text-xs text-muted-foreground">
                 Token ID
@@ -759,7 +805,6 @@ export default function TransactionPage() {
               />
             </div>
 
-            {/* Transaction Type */}
             <div>
               <label className="mb-2 block text-xs text-muted-foreground">
                 Transaction Type
@@ -782,7 +827,6 @@ export default function TransactionPage() {
               />
             </div>
 
-            {/* Amount */}
             <div>
               <label className="mb-2 block text-xs text-muted-foreground">
                 Amount
@@ -801,7 +845,6 @@ export default function TransactionPage() {
               />
             </div>
 
-            {/* Reference Number */}
             <div>
               <label className="mb-2 block text-xs text-muted-foreground">
                 Reference Number
@@ -819,7 +862,6 @@ export default function TransactionPage() {
               />
             </div>
 
-            {/* Status */}
             <div>
               <label className="mb-2 block text-xs text-muted-foreground">
                 Status
@@ -840,7 +882,6 @@ export default function TransactionPage() {
               />
             </div>
 
-            {/* Transaction Date */}
             <div>
               <label className="mb-2 block text-xs text-muted-foreground">
                 Transaction Date
@@ -859,7 +900,6 @@ export default function TransactionPage() {
               />
             </div>
 
-            {/* Description */}
             <div className="md:col-span-2">
               <label className="mb-2 block text-xs text-muted-foreground">
                 Description
@@ -877,7 +917,6 @@ export default function TransactionPage() {
               />
             </div>
 
-            {/* Buttons */}
             <div className="flex justify-end gap-2 md:col-span-2">
               <Button
                 label="Cancel"
@@ -893,14 +932,13 @@ export default function TransactionPage() {
                 label="Save Changes"
                 type="button"
                 onClick={saveEdit}
-                className="!border-0 !bg-primary !text-primary-foreground hover:!opacity-90"
+                className="!border-0 !bg-[#00A651] !text-white hover:!bg-[#008F45]"
               />
             </div>
           </div>
         )}
       </Dialog>
 
-      {/* Status Dialog */}
       <Dialog
         visible={statusDialogOpen}
         onHide={() => {
@@ -931,7 +969,7 @@ export default function TransactionPage() {
                 Transaction ID
               </div>
 
-              <div className="mt-1 font-semibold text-primary">
+              <div className="mt-1 font-semibold text-[#00A651]">
                 {selectedTransaction.transactionId}
               </div>
             </div>
@@ -955,14 +993,13 @@ export default function TransactionPage() {
                 }
                 type="button"
                 onClick={toggleStatus}
-                className="!border-0 !bg-primary !text-primary-foreground hover:!opacity-90"
+                className="!border-0 !bg-[#00A651] !text-white hover:!bg-[#008F45]"
               />
             </div>
           </div>
         )}
       </Dialog>
 
-      {/* Delete Dialog */}
       <Dialog
         visible={deleteDialogOpen}
         onHide={() => {

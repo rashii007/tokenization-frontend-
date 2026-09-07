@@ -16,6 +16,7 @@ import {
 
 import "./Sidebar.css";
 import logo from "../../assets/images/logo.png";
+import RaastLogo from "../../assets/images/Raast-logo.png";
 
 const NAV_GROUPS = [
   // =========================
@@ -199,8 +200,8 @@ export default function Sidebar({
     [
       "h-[18px] w-[18px]",
       active
-        ? "text-primary"
-        : "text-muted-foreground group-hover:text-foreground",
+        ? "text-[#00A651]"
+        : "text-muted-foreground group-hover:text-[#00A651]",
     ]
       .filter(Boolean)
       .join(" ");
@@ -208,8 +209,8 @@ export default function Sidebar({
   const resolveClassName = ({ isActive }) =>
     [
       "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition",
-      "text-muted-foreground hover:bg-background/40 hover:text-foreground",
-      isActive ? "bg-primary/15 text-foreground" : "",
+      "text-muted-foreground hover:bg-[#00A651]/10 hover:text-foreground",
+      isActive ? "bg-[#00A651]/15 text-foreground" : "",
     ]
       .filter(Boolean)
       .join(" ");
@@ -217,8 +218,8 @@ export default function Sidebar({
   const resolveSubClassName = ({ isActive }) =>
     [
       "group flex w-full items-center gap-3 rounded-xl px-3 py-2 text-[12px] transition",
-      "text-muted-foreground hover:bg-background/30 hover:text-foreground",
-      isActive ? "bg-background/35 text-foreground" : "",
+      "text-muted-foreground hover:bg-[#00A651]/10 hover:text-foreground",
+      isActive ? "bg-[#00A651]/10 text-foreground" : "",
     ]
       .filter(Boolean)
       .join(" ");
@@ -248,14 +249,24 @@ export default function Sidebar({
             onNavigate();
             navigate("/dashboard");
           }}
-          className="flex items-center gap-3 rounded-xl border border-white/20 bg-white/10 px-2 py-1.5 text-left shadow-sm backdrop-blur hover:bg-white/15"
+          className="flex items-center gap-3 rounded-xl border border-[#00A651]/20 bg-[#00A651]/5 px-2 py-1.5 text-left shadow-sm backdrop-blur transition hover:bg-[#00A651]/10 hover:border-[#00A651]/30"
           aria-label="Go to dashboard"
         >
+          {/* Mindcraft Logo */}
           <img
             src={logo}
-            alt=""
+            alt="Mindcraft"
             className="h-8 w-auto object-contain brightness-0 dark:brightness-0 dark:invert"
-          />{" "}
+          />
+
+          {/* RAAST Logo */}
+          <div className="h-7 w-px bg-border/60" />
+
+          <img
+            src={RaastLogo}
+            alt="RAAST"
+            className="h-7 w-auto max-w-[75px] object-contain"
+          />
         </button>
 
         <button
@@ -332,8 +343,8 @@ export default function Sidebar({
                         type="button"
                         className={[
                           "group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-[13px] font-medium transition",
-                          "text-muted-foreground hover:bg-background/40 hover:text-foreground",
-                          open ? "bg-background/30 text-foreground" : "",
+                          "text-muted-foreground hover:bg-[#00A651]/10 hover:text-foreground",
+                          open ? "bg-[#00A651]/10 text-foreground" : "",
                         ]
                           .filter(Boolean)
                           .join(" ")}
@@ -360,7 +371,7 @@ export default function Sidebar({
                       </button>
 
                       {open ? (
-                        <div className="mt-1 ml-3 flex flex-col gap-1 border-l border-white/10 pl-3">
+                        <div className="mt-1 ml-3 flex flex-col gap-1 border-l border-border pl-3">
                           {item.children.map((child) => (
                             <NavLink
                               key={child.id}
@@ -370,7 +381,7 @@ export default function Sidebar({
                             >
                               {child.icon ? (
                                 <child.icon
-                                  className="h-4 w-4 text-muted-foreground"
+                                  className="h-4 w-4 text-muted-foreground group-hover:text-[#00A651]"
                                   aria-hidden
                                 />
                               ) : null}
@@ -387,7 +398,7 @@ export default function Sidebar({
             </div>
 
             {groupIdx < groups.length - 1 ? (
-              <div className="my-3 h-px w-full bg-white/5" />
+              <div className="my-3 h-px w-full bg-border/50" />
             ) : null}
           </div>
         ))}
@@ -399,7 +410,7 @@ export default function Sidebar({
       <footer className="mt-auto flex flex-col gap-3 pt-6">
         <button
           type="button"
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/20 px-3 py-2 text-sm text-foreground hover:bg-background/35"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-border bg-background/20 px-3 py-2 text-sm text-foreground hover:bg-red-500/10 hover:border-red-500/30 hover:text-red-500"
           onClick={handleLogout}
         >
           <i className="pi pi-sign-out" aria-hidden />

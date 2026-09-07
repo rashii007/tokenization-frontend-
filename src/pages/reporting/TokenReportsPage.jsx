@@ -477,12 +477,15 @@ export default function TokenReportingPage() {
         {
           label: "Transaction Volume",
           data: topTokens.map((token) => token.volume),
+
           backgroundColor: isDark
-            ? "rgba(14, 165, 233, 0.65)"
-            : "rgba(14, 165, 233, 0.55)",
+            ? "rgba(0, 166, 81, 0.65)"
+            : "rgba(0, 166, 81, 0.55)",
+
           borderColor: isDark
-            ? "rgba(56, 189, 248, 1)"
-            : "rgba(14, 165, 233, 0.95)",
+            ? "rgba(34, 197, 94, 1)"
+            : "rgba(0, 166, 81, 0.95)",
+
           borderWidth: 1,
           borderRadius: 10,
           maxBarThickness: 46,
@@ -497,6 +500,7 @@ export default function TokenReportingPage() {
     () => ({
       maintainAspectRatio: false,
       responsive: true,
+
       plugins: {
         legend: {
           labels: {
@@ -504,6 +508,7 @@ export default function TokenReportingPage() {
             boxWidth: 10,
           },
         },
+
         tooltip: {
           backgroundColor: chartCard,
           titleColor: chartText,
@@ -513,27 +518,39 @@ export default function TokenReportingPage() {
           padding: 10,
         },
       },
+
       scales: {
         x: {
           ticks: {
             color: chartMuted,
           },
+
           grid: {
-            color: isDark ? "rgba(148,163,184,0.12)" : "rgba(100,116,139,0.15)",
+            color: isDark
+              ? "rgba(148,163,184,0.12)"
+              : "rgba(100,116,139,0.15)",
           },
+
           border: {
             color: chartBorder,
           },
         },
+
         y: {
           beginAtZero: true,
+
           ticks: {
             color: chartMuted,
-            callback: (value) => `PKR ${Number(value).toLocaleString()}`,
+            callback: (value) =>
+              `PKR ${Number(value).toLocaleString()}`,
           },
+
           grid: {
-            color: isDark ? "rgba(148,163,184,0.12)" : "rgba(100,116,139,0.15)",
+            color: isDark
+              ? "rgba(148,163,184,0.12)"
+              : "rgba(100,116,139,0.15)",
           },
+
           border: {
             color: chartBorder,
           },
@@ -547,16 +564,19 @@ export default function TokenReportingPage() {
   const donutData = useMemo(
     () => ({
       labels: tokenTypeBreakdown.labels,
+
       datasets: [
         {
           data: tokenTypeBreakdown.data,
+
           backgroundColor: [
-            "rgba(14, 165, 233, 0.85)",
-            "rgba(34, 197, 94, 0.85)",
-            "rgba(168, 85, 247, 0.85)",
-            "rgba(245, 158, 11, 0.85)",
-            "rgba(244, 63, 94, 0.85)",
+            "rgba(0, 166, 81, 0.88)",
+            "rgba(34, 197, 94, 0.82)",
+            "rgba(16, 185, 129, 0.82)",
+            "rgba(74, 222, 128, 0.82)",
+            "rgba(5, 150, 105, 0.82)",
           ],
+
           borderColor: chartCard,
           borderWidth: 2,
           cutout: "70%",
@@ -571,15 +591,18 @@ export default function TokenReportingPage() {
     () => ({
       maintainAspectRatio: false,
       responsive: true,
+
       plugins: {
         legend: {
           position: "bottom",
+
           labels: {
             color: chartText,
             padding: 14,
             boxWidth: 10,
           },
         },
+
         tooltip: {
           backgroundColor: chartCard,
           titleColor: chartText,
@@ -684,7 +707,7 @@ export default function TokenReportingPage() {
           iconPos="left"
           onClick={handleExport}
           disabled={loading || !tokenDetailRows.length}
-          className="!rounded-xl !border !border-primary/30 !bg-primary/10 !px-4 !py-2.5 !text-xs !font-semibold !text-primary shadow-none transition-all duration-200 hover:!bg-primary/15"
+          className="!rounded-xl !border !border-[#00A651]/30 !bg-[#00A651]/10 !px-4 !py-2.5 !text-xs !font-semibold !text-[#00A651] shadow-none transition-all duration-200 hover:!bg-[#00A651]/15"
         />
       </div>
 
@@ -713,7 +736,7 @@ export default function TokenReportingPage() {
       {/* FILTERS */}
       <section className="rounded-2xl border border-border bg-card p-4 shadow-sm transition-colors duration-300">
         <div className="mb-4 flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10 text-primary">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#00A651]/10 text-[#00A651]">
             <i className="pi pi-filter text-sm" />
           </div>
 
@@ -792,7 +815,7 @@ export default function TokenReportingPage() {
                   cardType,
                 })
               }
-              className="!rounded-xl !border !border-primary/30 !bg-primary/10 !px-5 !py-2.5 !text-xs !font-semibold !text-primary shadow-none hover:!bg-primary/15"
+              className="!rounded-xl !border !border-[#00A651]/30 !bg-[#00A651]/10 !px-5 !py-2.5 !text-xs !font-semibold !text-[#00A651] shadow-none hover:!bg-[#00A651]/15"
             />
 
             <Button
@@ -810,7 +833,7 @@ export default function TokenReportingPage() {
       {/* LOADING */}
       {loading && (
         <div className="mt-6 rounded-2xl border border-border bg-card p-10 text-center shadow-sm">
-          <i className="pi pi-spin pi-spinner text-2xl text-primary" />
+          <i className="pi pi-spin pi-spinner text-2xl text-[#00A651]" />
 
           <p className="mt-3 text-sm text-muted-foreground">
             Loading token reports...
@@ -838,7 +861,7 @@ export default function TokenReportingPage() {
                   </p>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00A651]/10 text-[#00A651]">
                   <i className="pi pi-credit-card" />
                 </div>
               </div>
@@ -873,7 +896,7 @@ export default function TokenReportingPage() {
                     Transactions
                   </p>
 
-                  <p className="mt-2 text-2xl font-semibold text-primary">
+                  <p className="mt-2 text-2xl font-semibold text-[#00A651]">
                     {stats.totalTransactions}
                   </p>
 
@@ -883,7 +906,7 @@ export default function TokenReportingPage() {
                   </p>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00A651]/10 text-[#00A651]">
                   <i className="pi pi-chart-line" />
                 </div>
               </div>
@@ -896,7 +919,7 @@ export default function TokenReportingPage() {
                     Total Volume
                   </p>
 
-                  <p className="mt-2 text-2xl font-semibold text-violet-600 dark:text-violet-400">
+                  <p className="mt-2 text-2xl font-semibold text-[#00A651]">
                     PKR{" "}
                     {stats.totalVolume.toLocaleString(undefined, {
                       maximumFractionDigits: 0,
@@ -908,7 +931,7 @@ export default function TokenReportingPage() {
                   </p>
                 </div>
 
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-500/10 text-violet-600 dark:text-violet-400">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#00A651]/10 text-[#00A651]">
                   <i className="pi pi-wallet" />
                 </div>
               </div>
@@ -1071,7 +1094,7 @@ export default function TokenReportingPage() {
                   header="Volume"
                   headerClassName="theme-table-header"
                   body={(row) => (
-                    <span className="font-medium text-violet-600 dark:text-violet-400">
+                    <span className="font-medium text-[#00A651]">
                       PKR{" "}
                       {Number(row.volume).toLocaleString(undefined, {
                         maximumFractionDigits: 0,
@@ -1101,6 +1124,7 @@ export default function TokenReportingPage() {
                             active ? "bg-emerald-500" : "bg-muted-foreground"
                           }`}
                         />
+
                         {row.status}
                       </span>
                     );
@@ -1126,147 +1150,177 @@ export default function TokenReportingPage() {
               </DataTable>
             </div>
           </section>
+
           <style>{`
-  /* Main DataTable */
-  .theme-datatable .p-datatable-table {
-    background: transparent !important;
-  }
+            /* =========================
+               DATA TABLE
+            ========================= */
 
-  /* Table Header */
-  .theme-datatable .p-datatable-thead > tr > th {
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--muted-foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    font-size: 10px !important;
-    font-weight: 600 !important;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    padding: 0.75rem 1rem !important;
-  }
+            .theme-datatable .p-datatable-table {
+              background: transparent !important;
+            }
 
-  /* Table Body Rows */
-  .theme-datatable .p-datatable-tbody > tr {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+            .theme-datatable .p-datatable-thead > tr > th {
+              background: hsl(var(--muted)) !important;
+              color: hsl(var(--muted-foreground)) !important;
+              border-color: hsl(var(--border)) !important;
+              padding: 0.75rem 1rem !important;
+              font-size: 10px !important;
+              font-weight: 600 !important;
+              text-transform: uppercase;
+              letter-spacing: 0.05em;
+              white-space: nowrap;
+            }
 
-  /* Table Cells */
-  .theme-datatable .p-datatable-tbody > tr > td {
-    background: transparent !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-    padding: 0.75rem 1rem !important;
-    font-size: 0.875rem !important;
-  }
+            .theme-datatable .p-datatable-tbody > tr {
+              background: hsl(var(--card)) !important;
+              color: hsl(var(--foreground)) !important;
+              border-color: hsl(var(--border)) !important;
+              transition: background-color 0.2s ease;
+            }
 
-  /* Alternate Rows */
-  .theme-datatable .p-datatable-tbody > tr:nth-child(even) {
-    background: hsl(var(--muted) / 0.35) !important;
-  }
+            .theme-datatable .p-datatable-tbody > tr > td {
+              background: transparent !important;
+              color: hsl(var(--foreground)) !important;
+              border-color: hsl(var(--border)) !important;
+              padding: 0.75rem 1rem !important;
+              font-size: 0.875rem !important;
+            }
 
-  /* Hover */
-  .theme-datatable .p-datatable-tbody > tr:hover {
-    background: rgba(34, 211, 238, 0.08) !important;
-  }
+            .theme-datatable .p-datatable-tbody > tr:nth-child(even) {
+              background: hsl(var(--muted) / 0.35) !important;
+            }
 
-  /* Dark Mode Rows */
-  html.dark .theme-datatable .p-datatable-tbody > tr {
-    background: hsl(var(--card)) !important;
-  }
+            .theme-datatable .p-datatable-tbody > tr:hover {
+              background: hsl(var(--primary) / 0.08) !important;
+            }
 
-  html.dark .theme-datatable .p-datatable-tbody > tr:nth-child(even) {
-    background: hsl(var(--muted) / 0.35) !important;
-  }
+            /* =========================
+               PAGINATOR
+            ========================= */
 
-  /* Paginator */
-  .theme-datatable .p-paginator {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+            .theme-datatable .p-paginator {
+              background: hsl(var(--card)) !important;
+              color: hsl(var(--foreground)) !important;
+              border-color: hsl(var(--border)) !important;
+            }
 
-  /* Paginator Buttons */
-  .theme-datatable .p-paginator .p-paginator-page,
-  .theme-datatable .p-paginator .p-paginator-first,
-  .theme-datatable .p-paginator .p-paginator-prev,
-  .theme-datatable .p-paginator .p-paginator-next,
-  .theme-datatable .p-paginator .p-paginator-last {
-    color: hsl(var(--foreground)) !important;
-    background: transparent !important;
-  }
+            .theme-datatable .p-paginator .p-paginator-page,
+            .theme-datatable .p-paginator .p-paginator-first,
+            .theme-datatable .p-paginator .p-paginator-prev,
+            .theme-datatable .p-paginator .p-paginator-next,
+            .theme-datatable .p-paginator .p-paginator-last {
+              color: hsl(var(--foreground)) !important;
+              background: transparent !important;
+              border-radius: 0.5rem !important;
+            }
 
-  /* Active Page */
-  .theme-datatable .p-paginator .p-paginator-page.p-highlight {
-    background: rgba(34, 211, 238, 0.15) !important;
-    color: #0891b2 !important;
-  }
+            .theme-datatable .p-paginator .p-paginator-element:hover {
+              background: hsl(var(--muted)) !important;
+              color: hsl(var(--foreground)) !important;
+            }
 
-  html.dark .theme-datatable .p-paginator .p-paginator-page.p-highlight {
-    color: #67e8f9 !important;
-  }
+            .theme-datatable .p-paginator .p-paginator-page.p-highlight {
+              background: rgba(0, 166, 81, 0.12) !important;
+              color: #00A651 !important;
+            }
 
-  /* Rows Per Page Dropdown */
-  .theme-datatable .p-dropdown {
-    background: hsl(var(--card)) !important;
-    color: hsl(var(--foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+            /* =========================
+               TABLE PAGINATOR DROPDOWN
+            ========================= */
 
-  .theme-datatable .p-dropdown-label {
-    color: hsl(var(--foreground)) !important;
-  }
+            .theme-datatable .p-paginator .p-dropdown {
+              background: hsl(var(--card)) !important;
+              color: hsl(var(--foreground)) !important;
+              border: 1px solid hsl(var(--border)) !important;
+              border-radius: 0.5rem !important;
+            }
 
-  .theme-datatable .p-dropdown-trigger {
-    color: hsl(var(--muted-foreground)) !important;
-  }
+            .theme-datatable .p-paginator .p-dropdown .p-dropdown-label {
+              background: transparent !important;
+              color: hsl(var(--foreground)) !important;
+            }
 
-  /* Dropdown Panel */
-  .theme-datatable .p-dropdown-panel {
-    background: hsl(var(--card)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+            .theme-datatable .p-paginator .p-dropdown .p-dropdown-trigger {
+              background: transparent !important;
+              color: hsl(var(--muted-foreground)) !important;
+            }
 
-  .theme-datatable .p-dropdown-items .p-dropdown-item {
-    color: hsl(var(--foreground)) !important;
-    background: transparent !important;
-  }
+            /* =========================
+               FILTER DROPDOWN
+            ========================= */
 
-  .theme-datatable .p-dropdown-items .p-dropdown-item:hover {
-    background: hsl(var(--muted)) !important;
-  }
+            .theme-dropdown-panel {
+              background: hsl(var(--card)) !important;
+              color: hsl(var(--foreground)) !important;
+              border: 1px solid hsl(var(--border)) !important;
+              border-radius: 10px !important;
+              box-shadow: 0 10px 30px hsl(var(--foreground) / 0.12) !important;
+            }
 
-  .theme-datatable .p-dropdown-items .p-dropdown-item.p-highlight {
-    background: hsl(var(--muted)) !important;
-    color: hsl(var(--foreground)) !important;
-  }
+            .theme-dropdown-panel .p-dropdown-items {
+              background: hsl(var(--card)) !important;
+              color: hsl(var(--foreground)) !important;
+              padding: 4px !important;
+            }
 
-  /* Empty Message */
-  .theme-datatable .p-datatable-emptymessage > tr > td {
-    background: transparent !important;
-    color: hsl(var(--muted-foreground)) !important;
-    border-color: hsl(var(--border)) !important;
-  }
+            .theme-dropdown-panel .p-dropdown-item {
+              background: transparent !important;
+              color: hsl(var(--foreground)) !important;
+              border-radius: 6px !important;
+              padding: 0.65rem 0.75rem !important;
+            }
 
-  /* Scrollbar */
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
-  }
+            .theme-dropdown-panel .p-dropdown-item:hover {
+              background: rgba(0, 166, 81, 0.06) !important;
+              color: hsl(var(--foreground)) !important;
+            }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-track {
-    background: hsl(var(--muted) / 0.3);
-  }
+            .theme-dropdown-panel .p-dropdown-item.p-highlight {
+              background: rgba(0, 166, 81, 0.12) !important;
+              color: #00A651 !important;
+            }
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb {
-    background: hsl(var(--border));
-    border-radius: 999px;
-  }
+            /* =========================
+               TABLE SCROLLBAR
+            ========================= */
 
-  .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
-  }
-`}</style>
+            .theme-datatable .p-datatable-wrapper {
+              scrollbar-width: thin;
+              scrollbar-color: hsl(var(--muted-foreground) / 0.4)
+                hsl(var(--muted) / 0.3);
+            }
+
+            .theme-datatable .p-datatable-wrapper::-webkit-scrollbar {
+              width: 8px;
+              height: 8px;
+            }
+
+            .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-track {
+              background: hsl(var(--muted) / 0.3);
+              border-radius: 999px;
+            }
+
+            .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb {
+              background: hsl(var(--border));
+              border-radius: 999px;
+            }
+
+            .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
+              background: hsl(var(--muted-foreground) / 0.5);
+            }
+
+            /* =========================
+               EMPTY MESSAGE
+            ========================= */
+
+            .theme-datatable .p-datatable-emptymessage > tr > td {
+              background: transparent !important;
+              color: hsl(var(--muted-foreground)) !important;
+              border-color: hsl(var(--border)) !important;
+              text-align: center;
+            }
+          `}</style>
         </>
       )}
     </div>

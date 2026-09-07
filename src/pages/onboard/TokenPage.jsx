@@ -256,13 +256,13 @@ export default function TokenPage() {
         <span
           className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold ${
             active
-              ? "border-emerald-500/25 bg-emerald-500/10 text-emerald-600 dark:text-emerald-300"
+              ? "border-[#00A651]/25 bg-[#00A651]/10 text-[#008F45] dark:text-[#4ADE80]"
               : "border-border bg-muted text-muted-foreground"
           }`}
         >
           <span
             className={`h-2 w-2 rounded-full ${
-              active ? "bg-emerald-500" : "bg-muted-foreground"
+              active ? "bg-[#00A651]" : "bg-muted-foreground"
             }`}
           />
           {active ? "Active" : "Inactive"}
@@ -298,7 +298,7 @@ export default function TokenPage() {
             <button
               type="button"
               disabled={loading}
-              className="inline-flex items-center justify-center rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-500/15 dark:text-rose-300 disabled:cursor-not-allowed disabled:opacity-50"
+              className="inline-flex items-center justify-center rounded-xl border border-[#00A651]/30 bg-[#00A651]/10 px-4 py-2 text-xs font-semibold text-[#008F45] transition-colors hover:bg-[#00A651]/15 dark:text-[#4ADE80] disabled:cursor-not-allowed disabled:opacity-50"
               onClick={() => openToggle(row)}
             >
               Deactivate
@@ -398,7 +398,7 @@ export default function TokenPage() {
         }
 
         .theme-datatable .p-datatable-tbody > tr:hover {
-          background: hsl(var(--primary) / 0.08) !important;
+          background: rgba(0, 166, 81, 0.06) !important;
         }
 
         /* =========================
@@ -422,13 +422,13 @@ export default function TokenPage() {
         }
 
         .theme-datatable .p-paginator .p-paginator-element:hover {
-          background: hsl(var(--muted)) !important;
-          color: hsl(var(--foreground)) !important;
+          background: rgba(0, 166, 81, 0.08) !important;
+          color: #00A651 !important;
         }
 
         .theme-datatable .p-paginator .p-paginator-page.p-highlight {
-          background: hsl(var(--primary) / 0.15) !important;
-          color: hsl(var(--primary)) !important;
+          background: rgba(0, 166, 81, 0.15) !important;
+          color: #00A651 !important;
         }
 
         /* =========================
@@ -466,8 +466,8 @@ export default function TokenPage() {
         .theme-dropdown.p-dropdown.p-focus,
         .theme-datatable .p-dropdown:hover,
         .theme-datatable .p-dropdown.p-focus {
-          border-color: hsl(var(--primary)) !important;
-          box-shadow: 0 0 0 1px hsl(var(--primary) / 0.2) !important;
+          border-color: #00A651 !important;
+          box-shadow: 0 0 0 1px rgba(0, 166, 81, 0.2) !important;
         }
 
         .theme-dropdown .p-dropdown-label,
@@ -515,13 +515,13 @@ export default function TokenPage() {
         }
 
         .p-dropdown-panel .p-dropdown-item:hover {
-          background: hsl(var(--muted)) !important;
+          background: rgba(0, 166, 81, 0.08) !important;
           color: hsl(var(--foreground)) !important;
         }
 
         .p-dropdown-panel .p-dropdown-item.p-highlight {
-          background: hsl(var(--primary) / 0.12) !important;
-          color: hsl(var(--primary)) !important;
+          background: rgba(0, 166, 81, 0.12) !important;
+          color: #00A651 !important;
         }
 
         /* =========================
@@ -530,7 +530,7 @@ export default function TokenPage() {
 
         .p-dropdown-panel .p-dropdown-items-wrapper {
           scrollbar-width: thin;
-          scrollbar-color: hsl(var(--muted-foreground) / 0.4)
+          scrollbar-color: rgba(0, 166, 81, 0.4)
             hsl(var(--muted) / 0.3);
         }
 
@@ -543,12 +543,12 @@ export default function TokenPage() {
         }
 
         .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb {
-          background: hsl(var(--border));
+          background: rgba(0, 166, 81, 0.35);
           border-radius: 999px;
         }
 
         .p-dropdown-panel .p-dropdown-items-wrapper::-webkit-scrollbar-thumb:hover {
-          background: hsl(var(--muted-foreground) / 0.5);
+          background: rgba(0, 166, 81, 0.55);
         }
 
         /* =========================
@@ -557,7 +557,7 @@ export default function TokenPage() {
 
         .theme-datatable .p-datatable-wrapper {
           scrollbar-width: thin;
-          scrollbar-color: hsl(var(--muted-foreground) / 0.4)
+          scrollbar-color: rgba(0, 166, 81, 0.4)
             hsl(var(--muted) / 0.3);
         }
 
@@ -572,12 +572,12 @@ export default function TokenPage() {
         }
 
         .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb {
-          background: hsl(var(--border));
+          background: rgba(0, 166, 81, 0.35);
           border-radius: 999px;
         }
 
         .theme-datatable .p-datatable-wrapper::-webkit-scrollbar-thumb:hover {
-          background: hsl(var(--muted-foreground) / 0.5);
+          background: rgba(0, 166, 81, 0.55);
         }
 
         /* =========================
@@ -616,7 +616,7 @@ export default function TokenPage() {
               value={searchValue}
               onChange={(e) => setSearchValue(e.target.value)}
               placeholder="Search Token ID or Token Number..."
-              className="!h-[42px] w-full !rounded-xl !border !border-border !bg-background !pl-10 !pr-4 !text-sm !text-foreground placeholder:!text-muted-foreground focus:!shadow-none"
+              className="!h-[42px] w-full !rounded-xl !border !border-border !bg-background !pl-10 !pr-4 !text-sm !text-foreground placeholder:!text-muted-foreground focus:!border-[#00A651] focus:!shadow-[0_0_0_3px_rgba(0,166,81,0.10)]"
             />
           </div>
 
@@ -632,7 +632,7 @@ export default function TokenPage() {
               label="Refresh"
               loading={loading}
               onClick={fetchTokens}
-              className="!rounded-lg !border !border-border !bg-background !px-4 !py-2 !text-xs !font-semibold !text-foreground hover:!bg-muted"
+              className="!rounded-lg !border !border-[#00A651]/30 !bg-[#00A651]/5 !px-4 !py-2 !text-xs !font-semibold !text-[#008F45] hover:!bg-[#00A651]/10 dark:!text-[#4ADE80]"
             />
           </div>
         </div>
@@ -699,7 +699,9 @@ export default function TokenPage() {
         {confirmTokenId && (
           <div className="mt-3 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
             Token ID:{" "}
-            <span className="font-semibold text-primary">{confirmTokenId}</span>
+            <span className="font-semibold text-[#00A651]">
+              {confirmTokenId}
+            </span>
           </div>
         )}
 
@@ -716,7 +718,7 @@ export default function TokenPage() {
           <button
             type="button"
             disabled={loading}
-            className="rounded-lg bg-rose-500 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 disabled:opacity-50"
+            className="rounded-lg border border-[#00A651] bg-[#00A651] px-4 py-2 text-sm font-semibold text-white hover:bg-[#008F45] disabled:opacity-50"
             onClick={applyToggle}
           >
             {loading ? "Deactivating..." : "Deactivate"}
@@ -753,7 +755,7 @@ export default function TokenPage() {
           {selectedToken?.tokenId && (
             <div className="mt-4 rounded-lg border border-border bg-background px-3 py-2 text-xs text-muted-foreground">
               Token ID:{" "}
-              <span className="font-semibold text-primary">
+              <span className="font-semibold text-[#00A651]">
                 {selectedToken.tokenId}
               </span>
             </div>
