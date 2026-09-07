@@ -153,6 +153,25 @@ export default function DashboardPage() {
     [getTxnCreatedAt],
   );
 
+  const formatTxnDate = useCallback(
+    (row) => {
+      const createdAt = getTxnCreatedAt(row);
+
+      if (!createdAt) return "--";
+
+      const parsed = new Date(createdAt);
+
+      if (Number.isNaN(parsed.getTime())) return "--";
+
+      return parsed.toLocaleDateString([], {
+        year: "numeric",
+        month: "short",
+        day: "2-digit",
+      });
+    },
+    [getTxnCreatedAt],
+  );
+
   const parseAmount = useCallback((value) => {
     if (value === null || value === undefined) return 0;
 
@@ -554,15 +573,6 @@ export default function DashboardPage() {
 
   /* =========================================================
      TABLE COLUMNS
-     NEW API:
-     transactionId
-     tokenId
-     transactionType
-     amount
-     currencyCode
-     referenceNumber
-     status
-     transactionDate
   ========================================================= */
 
   const columns = useMemo(
@@ -646,10 +656,10 @@ export default function DashboardPage() {
       {
         field: "transactionDate",
         header: "Date",
-        body: (row) => row?.transactionDate ?? "--",
+        body: (row) => formatTxnDate(row),
       },
     ],
-    [formatTxnTime, parseAmount],
+    [formatTxnTime, formatTxnDate, parseAmount],
   );
 
   /* =========================================================
@@ -1098,7 +1108,7 @@ export default function DashboardPage() {
           >
             <DataTable
               value={transactionRows}
-              dataKey="id"
+              dataKey="transactionId"
               rowHover
               size="small"
               paginator
@@ -1114,9 +1124,9 @@ export default function DashboardPage() {
                 minWidth: "1200px",
               }}
             >
-              {columns.map((column) => (
+              {columns.map((column, index) => (
                 <Column
-                  key={column.field}
+                  key={`${column.field}-${index}`}
                   field={column.field}
                   header={column.header}
                   body={column.body}

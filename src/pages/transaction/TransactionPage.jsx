@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Dropdown } from "primereact/dropdown";
 import { InputText } from "primereact/inputtext";
 import { AutoComplete } from "primereact/autocomplete";
@@ -6,6 +6,7 @@ import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
 import { Dialog } from "primereact/dialog";
+import api from "../../network/api/";
 
 const STATUS_OPTIONS = [
   { label: "All Status", value: "all" },
@@ -21,131 +22,8 @@ const TRANSACTION_TYPES = [
   { label: "Reversal", value: "Reversal" },
 ];
 
-const INITIAL_TRANSACTIONS = [
-  {
-    id: 1,
-    transactionId: "TXN-100001",
-    tokenId: "TKN-500001",
-    transactionType: "Sale",
-    amount: 12500,
-    currencyCode: "0586",
-    referenceNumber: "REF-784512",
-    description: "POS Purchase",
-    status: "active",
-    transactionDate: "2026-08-28",
-  },
-  {
-    id: 2,
-    transactionId: "TXN-100002",
-    tokenId: "TKN-500002",
-    transactionType: "Sale",
-    amount: 8500,
-    currencyCode: "0586",
-    referenceNumber: "REF-784513",
-    description: "Retail Transaction",
-    status: "active",
-    transactionDate: "2026-08-28",
-  },
-  {
-    id: 3,
-    transactionId: "TXN-100003",
-    tokenId: "TKN-500003",
-    transactionType: "Refund",
-    amount: 3200,
-    currencyCode: "0586",
-    referenceNumber: "REF-784514",
-    description: "Customer Refund",
-    status: "active",
-    transactionDate: "2026-08-29",
-  },
-  {
-    id: 4,
-    transactionId: "TXN-100004",
-    tokenId: "TKN-500004",
-    transactionType: "Sale",
-    amount: 15750,
-    currencyCode: "0586",
-    referenceNumber: "REF-784515",
-    description: "Shopping Transaction",
-    status: "inactive",
-    transactionDate: "2026-08-29",
-  },
-  {
-    id: 5,
-    transactionId: "TXN-100005",
-    tokenId: "TKN-500005",
-    transactionType: "Void",
-    amount: 4500,
-    currencyCode: "0586",
-    referenceNumber: "REF-784516",
-    description: "Cancelled Transaction",
-    status: "active",
-    transactionDate: "2026-08-30",
-  },
-  {
-    id: 6,
-    transactionId: "TXN-100006",
-    tokenId: "TKN-500006",
-    transactionType: "Sale",
-    amount: 22000,
-    currencyCode: "0586",
-    referenceNumber: "REF-784517",
-    description: "Utility Payment",
-    status: "active",
-    transactionDate: "2026-08-30",
-  },
-  {
-    id: 7,
-    transactionId: "TXN-100007",
-    tokenId: "TKN-500007",
-    transactionType: "Reversal",
-    amount: 7600,
-    currencyCode: "0586",
-    referenceNumber: "REF-784518",
-    description: "Transaction Reversal",
-    status: "inactive",
-    transactionDate: "2026-08-31",
-  },
-  {
-    id: 8,
-    transactionId: "TXN-100008",
-    tokenId: "TKN-500008",
-    transactionType: "Sale",
-    amount: 18500,
-    currencyCode: "0586",
-    referenceNumber: "REF-784519",
-    description: "Agriculture Payment",
-    status: "active",
-    transactionDate: "2026-08-31",
-  },
-  {
-    id: 9,
-    transactionId: "TXN-100009",
-    tokenId: "TKN-500009",
-    transactionType: "Sale",
-    amount: 9200,
-    currencyCode: "0586",
-    referenceNumber: "REF-784520",
-    description: "Online Purchase",
-    status: "active",
-    transactionDate: "2026-09-01",
-  },
-  {
-    id: 10,
-    transactionId: "TXN-100010",
-    tokenId: "TKN-500010",
-    transactionType: "Refund",
-    amount: 5500,
-    currencyCode: "0586",
-    referenceNumber: "REF-784521",
-    description: "Returned Product",
-    status: "inactive",
-    transactionDate: "2026-09-01",
-  },
-];
-
 export default function TransactionPage() {
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  const [transactions, setTransactions] = useState([]);
   const [search, setSearch] = useState("");
   const [suggestions, setSuggestions] = useState([]);
   const [statusFilter, setStatusFilter] = useState("all");
@@ -155,6 +33,22 @@ export default function TransactionPage() {
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        const response = await api.get("/transaction/portal");
+
+        const data = response.data?.data ?? response.data;
+
+        setTransactions(Array.isArray(data) ? data : data?.transactions || []);
+      } catch (error) {
+        console.error("Failed to fetch transactions:", error);
+      }
+    };
+
+    fetchTransactions();
+  }, []);
 
   const searchSuggestions = (event) => {
     const query = event.query.trim().toLowerCase();

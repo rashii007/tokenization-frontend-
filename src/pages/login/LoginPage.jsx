@@ -54,7 +54,7 @@ export default function LoginPage() {
         <header className="login-header">
           <img
             src={logo}
-            alt="Token Volt"
+            alt="Token Vault"
             className="login-logo"
           />
 

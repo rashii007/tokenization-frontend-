@@ -1,9 +1,16 @@
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import axios from "axios";
 import { Calendar } from "primereact/calendar";
 import { Dropdown } from "primereact/dropdown";
 import { DataTable } from "primereact/datatable";
 import { Column } from "primereact/column";
 import { Button } from "primereact/button";
+
+/* =========================================================
+   API
+========================================================= */
+
+const API_BASE_URL = "http://203.175.74.144:8000/api";
 
 /* =========================================================
    CSV HELPERS
@@ -38,6 +45,7 @@ const downloadCsv = ({ rows, columns, filename }) => {
   });
 
   const url = URL.createObjectURL(blob);
+
   const a = document.createElement("a");
 
   a.href = url;
@@ -51,460 +59,6 @@ const downloadCsv = ({ rows, columns, filename }) => {
 };
 
 /* =========================================================
-   DUMMY TOKEN DATA
-========================================================= */
-
-const TOKEN_DATA = [
-  {
-    id: 1,
-    tokenId: "TKN-10001",
-    tokenType: "Payment Token",
-    tokenNumber: "**** **** **** 4521",
-    status: "Active",
-    createdDate: "2026-07-05",
-  },
-  {
-    id: 2,
-    tokenId: "TKN-10002",
-    tokenType: "Payment Token",
-    tokenNumber: "**** **** **** 7812",
-    status: "Active",
-    createdDate: "2026-07-08",
-  },
-  {
-    id: 3,
-    tokenId: "TKN-10003",
-    tokenType: "Network Token",
-    tokenNumber: "**** **** **** 2398",
-    status: "Active",
-    createdDate: "2026-07-12",
-  },
-  {
-    id: 4,
-    tokenId: "TKN-10004",
-    tokenType: "Device Token",
-    tokenNumber: "**** **** **** 6145",
-    status: "Inactive",
-    createdDate: "2026-07-18",
-  },
-  {
-    id: 5,
-    tokenId: "TKN-10005",
-    tokenType: "Network Token",
-    tokenNumber: "**** **** **** 9034",
-    status: "Active",
-    createdDate: "2026-07-22",
-  },
-  {
-    id: 6,
-    tokenId: "TKN-10006",
-    tokenType: "Payment Token",
-    tokenNumber: "**** **** **** 3277",
-    status: "Active",
-    createdDate: "2026-08-01",
-  },
-  {
-    id: 7,
-    tokenId: "TKN-10007",
-    tokenType: "Device Token",
-    tokenNumber: "**** **** **** 5689",
-    status: "Active",
-    createdDate: "2026-08-05",
-  },
-  {
-    id: 8,
-    tokenId: "TKN-10008",
-    tokenType: "Payment Token",
-    tokenNumber: "**** **** **** 1456",
-    status: "Active",
-    createdDate: "2026-08-10",
-  },
-  {
-    id: 9,
-    tokenId: "TKN-10009",
-    tokenType: "Network Token",
-    tokenNumber: "**** **** **** 8921",
-    status: "Inactive",
-    createdDate: "2026-08-15",
-  },
-  {
-    id: 10,
-    tokenId: "TKN-10010",
-    tokenType: "Device Token",
-    tokenNumber: "**** **** **** 6743",
-    status: "Active",
-    createdDate: "2026-08-25",
-  },
-];
-
-/* =========================================================
-   DUMMY TRANSACTION DATA
-========================================================= */
-
-const TRANSACTION_DATA = [
-  {
-    id: 1,
-    transactionId: "TXN-100001",
-    tokenId: "TKN-10001",
-    transactionType: "Sale",
-    amount: 12500,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-07-05",
-  },
-  {
-    id: 2,
-    transactionId: "TXN-100002",
-    tokenId: "TKN-10002",
-    transactionType: "Sale",
-    amount: 8700,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-07-07",
-  },
-  {
-    id: 3,
-    transactionId: "TXN-100003",
-    tokenId: "TKN-10003",
-    transactionType: "Payment",
-    amount: 15600,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-07-10",
-  },
-  {
-    id: 4,
-    transactionId: "TXN-100004",
-    tokenId: "TKN-10004",
-    transactionType: "Sale",
-    amount: 4200,
-    status: "Failed",
-    responseCode: "05",
-    date: "2026-07-12",
-  },
-  {
-    id: 5,
-    transactionId: "TXN-100005",
-    tokenId: "TKN-10005",
-    transactionType: "Payment",
-    amount: 21900,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-07-15",
-  },
-  {
-    id: 6,
-    transactionId: "TXN-100006",
-    tokenId: "TKN-10001",
-    transactionType: "Sale",
-    amount: 9400,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-07-18",
-  },
-  {
-    id: 7,
-    transactionId: "TXN-100007",
-    tokenId: "TKN-10006",
-    transactionType: "Payment",
-    amount: 13400,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-07-21",
-  },
-  {
-    id: 8,
-    transactionId: "TXN-100008",
-    tokenId: "TKN-10007",
-    transactionType: "Sale",
-    amount: 6700,
-    status: "Failed",
-    responseCode: "05",
-    date: "2026-07-24",
-  },
-  {
-    id: 9,
-    transactionId: "TXN-100009",
-    tokenId: "TKN-10008",
-    transactionType: "Payment",
-    amount: 18200,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-07-26",
-  },
-  {
-    id: 10,
-    transactionId: "TXN-100010",
-    tokenId: "TKN-10010",
-    transactionType: "Sale",
-    amount: 11300,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-07-29",
-  },
-  {
-    id: 11,
-    transactionId: "TXN-100011",
-    tokenId: "TKN-10001",
-    transactionType: "Payment",
-    amount: 14300,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-02",
-  },
-  {
-    id: 12,
-    transactionId: "TXN-100012",
-    tokenId: "TKN-10002",
-    transactionType: "Sale",
-    amount: 9200,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-03",
-  },
-  {
-    id: 13,
-    transactionId: "TXN-100013",
-    tokenId: "TKN-10003",
-    transactionType: "Payment",
-    amount: 19800,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-05",
-  },
-  {
-    id: 14,
-    transactionId: "TXN-100014",
-    tokenId: "TKN-10004",
-    transactionType: "Sale",
-    amount: 5600,
-    status: "Failed",
-    responseCode: "05",
-    date: "2026-08-07",
-  },
-  {
-    id: 15,
-    transactionId: "TXN-100015",
-    tokenId: "TKN-10005",
-    transactionType: "Payment",
-    amount: 24700,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-09",
-  },
-  {
-    id: 16,
-    transactionId: "TXN-100016",
-    tokenId: "TKN-10006",
-    transactionType: "Sale",
-    amount: 11800,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-11",
-  },
-  {
-    id: 17,
-    transactionId: "TXN-100017",
-    tokenId: "TKN-10007",
-    transactionType: "Payment",
-    amount: 7600,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-13",
-  },
-  {
-    id: 18,
-    transactionId: "TXN-100018",
-    tokenId: "TKN-10008",
-    transactionType: "Sale",
-    amount: 16300,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-15",
-  },
-  {
-    id: 19,
-    transactionId: "TXN-100019",
-    tokenId: "TKN-10009",
-    transactionType: "Payment",
-    amount: 4500,
-    status: "Failed",
-    responseCode: "05",
-    date: "2026-08-17",
-  },
-  {
-    id: 20,
-    transactionId: "TXN-100020",
-    tokenId: "TKN-10010",
-    transactionType: "Sale",
-    amount: 21100,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-20",
-  },
-  {
-    id: 21,
-    transactionId: "TXN-100021",
-    tokenId: "TKN-10001",
-    transactionType: "Sale",
-    amount: 10200,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-22",
-  },
-  {
-    id: 22,
-    transactionId: "TXN-100022",
-    tokenId: "TKN-10002",
-    transactionType: "Payment",
-    amount: 13700,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-24",
-  },
-  {
-    id: 23,
-    transactionId: "TXN-100023",
-    tokenId: "TKN-10003",
-    transactionType: "Sale",
-    amount: 18600,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-25",
-  },
-  {
-    id: 24,
-    transactionId: "TXN-100024",
-    tokenId: "TKN-10005",
-    transactionType: "Payment",
-    amount: 22500,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-27",
-  },
-  {
-    id: 25,
-    transactionId: "TXN-100025",
-    tokenId: "TKN-10006",
-    transactionType: "Sale",
-    amount: 9700,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-28",
-  },
-  {
-    id: 26,
-    transactionId: "TXN-100026",
-    tokenId: "TKN-10008",
-    transactionType: "Payment",
-    amount: 15400,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-29",
-  },
-  {
-    id: 27,
-    transactionId: "TXN-100027",
-    tokenId: "TKN-10010",
-    transactionType: "Sale",
-    amount: 18900,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-08-30",
-  },
-  {
-    id: 28,
-    transactionId: "TXN-100028",
-    tokenId: "TKN-10007",
-    transactionType: "Payment",
-    amount: 8100,
-    status: "Failed",
-    responseCode: "05",
-    date: "2026-08-31",
-  },
-  {
-    id: 29,
-    transactionId: "TXN-100029",
-    tokenId: "TKN-10001",
-    transactionType: "Sale",
-    amount: 12800,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-09-01",
-  },
-  {
-    id: 30,
-    transactionId: "TXN-100030",
-    tokenId: "TKN-10002",
-    transactionType: "Payment",
-    amount: 14600,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-09-01",
-  },
-  {
-    id: 31,
-    transactionId: "TXN-100031",
-    tokenId: "TKN-10003",
-    transactionType: "Sale",
-    amount: 17600,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-09-01",
-  },
-  {
-    id: 32,
-    transactionId: "TXN-100032",
-    tokenId: "TKN-10005",
-    transactionType: "Payment",
-    amount: 23200,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-09-01",
-  },
-  {
-    id: 33,
-    transactionId: "TXN-100033",
-    tokenId: "TKN-10006",
-    transactionType: "Sale",
-    amount: 10500,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-09-02",
-  },
-  {
-    id: 34,
-    transactionId: "TXN-100034",
-    tokenId: "TKN-10007",
-    transactionType: "Payment",
-    amount: 7400,
-    status: "Failed",
-    responseCode: "05",
-    date: "2026-09-02",
-  },
-  {
-    id: 35,
-    transactionId: "TXN-100035",
-    tokenId: "TKN-10008",
-    transactionType: "Sale",
-    amount: 16700,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-09-02",
-  },
-  {
-    id: 36,
-    transactionId: "TXN-100036",
-    tokenId: "TKN-10010",
-    transactionType: "Payment",
-    amount: 20400,
-    status: "Success",
-    responseCode: "00",
-    date: "2026-09-02",
-  },
-];
-
-/* =========================================================
    HELPERS
 ========================================================= */
 
@@ -513,7 +67,9 @@ const getTransactionDate = (row) => {
 
   const parsed = new Date(row.date);
 
-  if (Number.isNaN(parsed.getTime())) return "";
+  if (Number.isNaN(parsed.getTime())) {
+    return "";
+  }
 
   return row.date;
 };
@@ -521,7 +77,9 @@ const getTransactionDate = (row) => {
 const formatAmount = (value) => {
   const amount = Number(value);
 
-  if (!Number.isFinite(amount)) return "0";
+  if (!Number.isFinite(amount)) {
+    return "0";
+  }
 
   return amount.toLocaleString("en-PK", {
     maximumFractionDigits: 2,
@@ -541,57 +99,213 @@ const getStatusClass = (status) => {
 };
 
 /* =========================================================
+   RESPONSE NORMALIZER
+========================================================= */
+
+const getResponseData = (response) => {
+  const data = response?.data;
+
+  if (Array.isArray(data)) {
+    return data;
+  }
+
+  if (Array.isArray(data?.data)) {
+    return data.data;
+  }
+
+  if (Array.isArray(data?.result)) {
+    return data.result;
+  }
+
+  if (Array.isArray(data?.results)) {
+    return data.results;
+  }
+
+  return [];
+};
+
+/* =========================================================
    PAGE
 ========================================================= */
 
 export default function TokenDailyTransactionsPage() {
-  const [rows] = useState(TRANSACTION_DATA);
+  /* =======================================================
+     API STATE
+  ======================================================= */
+
+  const [rows, setRows] = useState([]);
+  const [tokens, setTokens] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  /* =======================================================
+     FILTER STATE
+  ======================================================= */
+
   const [tokenId, setTokenId] = useState("");
   const [transactionStatus, setTransactionStatus] = useState("");
+
   const [transactionType, setTransactionType] = useState("");
+
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
 
   const tableScrollRef = useRef(null);
 
+  /* =======================================================
+     FETCH API
+  ======================================================= */
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError("");
+
+        console.log("Fetching token and transaction APIs...");
+
+        const [transactionResponse, tokenResponse] = await Promise.all([
+          axios.get(`${API_BASE_URL}/transaction/portal`),
+
+          axios.get(`${API_BASE_URL}/token/portal`),
+        ]);
+
+        console.log("Transaction API Response:", transactionResponse.data);
+
+        console.log("Token API Response:", tokenResponse.data);
+
+        const transactionData = getResponseData(transactionResponse);
+
+        const tokenData = getResponseData(tokenResponse);
+
+        if (!mounted) return;
+
+        setRows(transactionData);
+        setTokens(tokenData);
+
+        console.log("Transactions loaded:", transactionData.length);
+
+        console.log("Tokens loaded:", tokenData.length);
+      } catch (err) {
+        console.error("Token Daily Transactions API Error:", err);
+
+        if (!mounted) return;
+
+        setRows([]);
+        setTokens([]);
+
+        if (err?.response?.data?.message) {
+          setError(err.response.data.message);
+        } else if (err?.response?.status) {
+          setError(`API Error: ${err.response.status}`);
+        } else {
+          setError("Unable to fetch data from server. Please check API/CORS.");
+        }
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  /* =======================================================
+     TOKEN MAP
+  ======================================================= */
+
   const tokenById = useMemo(() => {
     const map = new Map();
 
-    TOKEN_DATA.forEach((token) => {
-      map.set(token.tokenId, token);
+    tokens.forEach((token) => {
+      const id = token?.tokenId ?? token?.token_id ?? token?.id;
+
+      if (id !== undefined && id !== null) {
+        map.set(String(id), token);
+      }
     });
 
     return map;
-  }, []);
+  }, [tokens]);
+
+  /* =======================================================
+     TOKEN OPTIONS
+  ======================================================= */
 
   const tokenOptions = useMemo(
     () => [
-      { label: "All Tokens", value: "" },
-      ...TOKEN_DATA.map((token) => ({
-        label: token.tokenId,
-        value: token.tokenId,
-      })),
+      {
+        label: "All Tokens",
+        value: "",
+      },
+
+      ...tokens.map((token) => {
+        const id = token?.tokenId ?? token?.token_id ?? token?.id;
+
+        return {
+          label: String(id ?? "-"),
+          value: String(id ?? ""),
+        };
+      }),
     ],
-    [],
+    [tokens],
   );
+
+  /* =======================================================
+     STATUS OPTIONS
+  ======================================================= */
 
   const statusOptions = useMemo(
     () => [
-      { label: "All Status", value: "" },
-      { label: "Success", value: "Success" },
-      { label: "Failed", value: "Failed" },
+      {
+        label: "All Status",
+        value: "",
+      },
+      {
+        label: "Success",
+        value: "Success",
+      },
+      {
+        label: "Failed",
+        value: "Failed",
+      },
     ],
     [],
   );
 
+  /* =======================================================
+     TRANSACTION TYPE OPTIONS
+  ======================================================= */
+
   const transactionTypeOptions = useMemo(
     () => [
-      { label: "All Types", value: "" },
-      { label: "Sale", value: "Sale" },
-      { label: "Payment", value: "Payment" },
+      {
+        label: "All Types",
+        value: "",
+      },
+      {
+        label: "Sale",
+        value: "Sale",
+      },
+      {
+        label: "Payment",
+        value: "Payment",
+      },
     ],
     [],
   );
+
+  /* =======================================================
+     DATE RANGE
+  ======================================================= */
 
   const createdAtRange = useMemo(() => {
     if (!(startDate instanceof Date) && !(endDate instanceof Date)) {
@@ -603,27 +317,40 @@ export default function TokenDailyTransactionsPage() {
 
     const toLocalYmd = (date) => {
       const y = date.getFullYear();
+
       const m = String(date.getMonth() + 1).padStart(2, "0");
+
       const d = String(date.getDate()).padStart(2, "0");
 
       return `${y}-${m}-${d}`;
     };
 
     let startYmd = startDate instanceof Date ? toLocalYmd(startDate) : null;
+
     let endYmd = endDate instanceof Date ? toLocalYmd(endDate) : null;
 
     if (startYmd && endYmd && endYmd < startYmd) {
       const temp = startYmd;
+
       startYmd = endYmd;
       endYmd = temp;
     }
 
-    return { startYmd, endYmd };
+    return {
+      startYmd,
+      endYmd,
+    };
   }, [startDate, endDate]);
+
+  /* =======================================================
+     FILTERED ROWS
+  ======================================================= */
 
   const filteredRows = useMemo(() => {
     const selectedToken = String(tokenId ?? "").trim();
+
     const selectedStatus = String(transactionStatus ?? "").trim();
+
     const selectedType = String(transactionType ?? "").trim();
 
     const { startYmd, endYmd } = createdAtRange;
@@ -639,105 +366,209 @@ export default function TokenDailyTransactionsPage() {
     }
 
     return rows.filter((row) => {
-      if (!row || typeof row !== "object") return false;
-
-      if (selectedToken && String(row.tokenId ?? "").trim() !== selectedToken) {
+      if (!row || typeof row !== "object") {
         return false;
       }
 
-      if (
-        selectedStatus &&
-        String(row.status ?? "").trim() !== selectedStatus
-      ) {
+      const rowTokenId = String(
+        row?.tokenId ??
+          row?.token_id ??
+          row?.token?.tokenId ??
+          row?.token?.id ??
+          "",
+      ).trim();
+
+      const rowStatus = String(
+        row?.status ?? row?.transactionStatus ?? "",
+      ).trim();
+
+      const rowType = String(row?.transactionType ?? row?.type ?? "").trim();
+
+      if (selectedToken && rowTokenId !== selectedToken) {
         return false;
       }
 
-      if (
-        selectedType &&
-        String(row.transactionType ?? "").trim() !== selectedType
-      ) {
+      if (selectedStatus && rowStatus !== selectedStatus) {
+        return false;
+      }
+
+      if (selectedType && rowType !== selectedType) {
         return false;
       }
 
       if (startYmd || endYmd) {
         const transactionDate = getTransactionDate(row);
 
-        if (!transactionDate) return false;
+        if (!transactionDate) {
+          return false;
+        }
 
-        if (startYmd && transactionDate < startYmd) return false;
-        if (endYmd && transactionDate > endYmd) return false;
+        if (startYmd && transactionDate < startYmd) {
+          return false;
+        }
+
+        if (endYmd && transactionDate > endYmd) {
+          return false;
+        }
       }
 
       return true;
     });
   }, [rows, tokenId, transactionStatus, transactionType, createdAtRange]);
 
+  /* =======================================================
+     TOTAL AMOUNT
+  ======================================================= */
+
   const filteredTotalAmount = useMemo(
     () =>
       filteredRows.reduce((total, row) => {
-        const amount = Number(row?.amount);
+        const amount = Number(
+          row?.amount ?? row?.transactionAmount ?? row?.txnAmount ?? 0,
+        );
 
         return total + (Number.isFinite(amount) ? amount : 0);
       }, 0),
     [filteredRows],
   );
 
+  /* =======================================================
+     TABLE COLUMNS
+  ======================================================= */
+
   const columns = useMemo(
     () => [
       {
         field: "date",
         header: "Transaction Date",
-        value: (row) => getTransactionDate(row),
+
+        value: (row) =>
+          getTransactionDate(row) ||
+          row?.createdAt ||
+          row?.transactionDate ||
+          "-",
       },
+
       {
         field: "transactionId",
         header: "Transaction ID",
+
+        value: (row) =>
+          row?.transactionId ?? row?.transaction_id ?? row?.id ?? "-",
       },
+
       {
         field: "tokenId",
         header: "Token ID",
+
+        value: (row) =>
+          row?.tokenId ??
+          row?.token_id ??
+          row?.token?.tokenId ??
+          row?.token?.id ??
+          "-",
       },
+
       {
         field: "tokenType",
         header: "Token Type",
-        value: (row) => tokenById.get(row?.tokenId)?.tokenType ?? "-",
+
+        value: (row) => {
+          const id =
+            row?.tokenId ??
+            row?.token_id ??
+            row?.token?.tokenId ??
+            row?.token?.id;
+
+          return (
+            tokenById.get(String(id))?.tokenType ??
+            tokenById.get(String(id))?.token_type ??
+            row?.tokenType ??
+            "-"
+          );
+        },
       },
+
       {
         field: "tokenNumber",
         header: "Token Number",
-        value: (row) => tokenById.get(row?.tokenId)?.tokenNumber ?? "-",
+
+        value: (row) => {
+          const id =
+            row?.tokenId ??
+            row?.token_id ??
+            row?.token?.tokenId ??
+            row?.token?.id;
+
+          return (
+            tokenById.get(String(id))?.tokenNumber ??
+            tokenById.get(String(id))?.token_number ??
+            row?.tokenNumber ??
+            "-"
+          );
+        },
       },
+
       {
         field: "transactionType",
         header: "Transaction Type",
+
+        value: (row) => row?.transactionType ?? row?.type ?? "-",
       },
+
       {
         field: "amount",
         header: "Amount",
-        value: (row) => formatAmount(row?.amount),
+
+        value: (row) =>
+          formatAmount(
+            row?.amount ?? row?.transactionAmount ?? row?.txnAmount ?? 0,
+          ),
       },
+
       {
         field: "status",
         header: "Status",
+
+        value: (row) => row?.status ?? row?.transactionStatus ?? "-",
       },
+
       {
         field: "responseCode",
         header: "Response Code",
+
+        value: (row) => row?.responseCode ?? row?.response_code ?? "-",
       },
+
       {
         field: "tokenStatus",
         header: "Token Status",
-        value: (row) => tokenById.get(row?.tokenId)?.status ?? "-",
+
+        value: (row) => {
+          const id =
+            row?.tokenId ??
+            row?.token_id ??
+            row?.token?.tokenId ??
+            row?.token?.id;
+
+          return tokenById.get(String(id))?.status ?? "-";
+        },
       },
     ],
     [tokenById],
   );
 
+  /* =======================================================
+     DOWNLOAD CSV
+  ======================================================= */
+
   const handleDownloadCsv = () => {
     const now = new Date();
 
     const yyyy = now.getFullYear();
+
     const mm = String(now.getMonth() + 1).padStart(2, "0");
+
     const dd = String(now.getDate()).padStart(2, "0");
 
     const filename = `token-daily-transactions_${yyyy}-${mm}-${dd}.csv`;
@@ -748,6 +579,10 @@ export default function TokenDailyTransactionsPage() {
       filename,
     });
   };
+
+  /* =======================================================
+     TABLE SCROLL
+  ======================================================= */
 
   const handleScrollTable = (direction) => {
     const root = tableScrollRef.current;
@@ -761,7 +596,9 @@ export default function TokenDailyTransactionsPage() {
 
     if (!scrollEl) return;
 
-    if (scrollEl.scrollWidth <= scrollEl.clientWidth) return;
+    if (scrollEl.scrollWidth <= scrollEl.clientWidth) {
+      return;
+    }
 
     const amount = Math.max(240, Math.floor(scrollEl.clientWidth * 0.8));
 
@@ -771,6 +608,10 @@ export default function TokenDailyTransactionsPage() {
     });
   };
 
+  /* =======================================================
+     CLEAR FILTERS
+  ======================================================= */
+
   const handleClearFilters = () => {
     setTokenId("");
     setTransactionStatus("");
@@ -778,6 +619,10 @@ export default function TokenDailyTransactionsPage() {
     setStartDate(null);
     setEndDate(null);
   };
+
+  /* =======================================================
+     INPUT CLASS
+  ======================================================= */
 
   const inputClassName = [
     "h-10",
@@ -797,14 +642,22 @@ export default function TokenDailyTransactionsPage() {
     "focus:ring-primary/20",
   ].join(" ");
 
+  /* =======================================================
+     UI
+  ======================================================= */
+
   return (
     <div className="min-h-full w-full bg-background text-foreground">
       <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* Breadcrumb */}
+
         <div className="mb-5 text-xs text-muted-foreground">
           Reports
           <span className="mx-2">/</span>
           Token Daily Transactions
         </div>
+
+        {/* Header */}
 
         <div className="mb-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
@@ -813,7 +666,7 @@ export default function TokenDailyTransactionsPage() {
             </h1>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Dummy transaction report
+              Daily token transaction report
             </p>
           </div>
 
@@ -823,26 +676,43 @@ export default function TokenDailyTransactionsPage() {
             icon="pi pi-download"
             iconPos="left"
             onClick={handleDownloadCsv}
-            disabled={!filteredRows.length}
+            disabled={loading || !filteredRows.length}
             className="!rounded-xl !border !border-primary/30 !bg-primary/10 !px-4 !py-2.5 !text-xs !font-semibold !text-primary shadow-none transition-all duration-200 hover:!bg-primary/15 disabled:!cursor-not-allowed disabled:!opacity-50"
           />
         </div>
 
+        {/* Error */}
+
+        {error && (
+          <div className="mb-4 rounded-xl border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-600 dark:text-rose-400">
+            {error}
+          </div>
+        )}
+
+        {/* Summary */}
+
         <div className="mb-4 rounded-xl border border-border bg-card px-4 py-3">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm font-semibold text-foreground">
             <span>
-              Total Transactions: {filteredRows.length.toLocaleString()}
+              Total Transactions:{" "}
+              {loading ? "..." : filteredRows.length.toLocaleString()}
             </span>
 
             <span className="hidden text-muted-foreground sm:inline">|</span>
 
-            <span>Total Amount: {formatAmount(filteredTotalAmount)}</span>
+            <span>
+              Total Amount:{" "}
+              {loading ? "..." : formatAmount(filteredTotalAmount)}
+            </span>
           </div>
         </div>
+
+        {/* Filters */}
 
         <section className="mb-5 rounded-2xl border border-border bg-card p-4 shadow-sm">
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-6">
             {/* Start Date */}
+
             <div className="flex min-w-0 flex-col gap-1.5">
               <label className="text-xs font-semibold text-foreground">
                 Start Date
@@ -861,6 +731,7 @@ export default function TokenDailyTransactionsPage() {
             </div>
 
             {/* End Date */}
+
             <div className="flex min-w-0 flex-col gap-1.5">
               <label className="text-xs font-semibold text-foreground">
                 End Date
@@ -879,6 +750,7 @@ export default function TokenDailyTransactionsPage() {
             </div>
 
             {/* Token */}
+
             <div className="flex min-w-0 flex-col gap-1.5">
               <label className="text-xs font-semibold text-foreground">
                 Token
@@ -892,10 +764,12 @@ export default function TokenDailyTransactionsPage() {
                 optionValue="value"
                 placeholder="Select token"
                 className="w-full !rounded-xl !border !border-border !bg-background !text-foreground"
+                disabled={loading}
               />
             </div>
 
             {/* Transaction Type */}
+
             <div className="flex min-w-0 flex-col gap-1.5">
               <label className="text-xs font-semibold text-foreground">
                 Transaction Type
@@ -909,10 +783,12 @@ export default function TokenDailyTransactionsPage() {
                 optionValue="value"
                 placeholder="Select type"
                 className="w-full !rounded-xl !border !border-border !bg-background !text-foreground"
+                disabled={loading}
               />
             </div>
 
             {/* Transaction Status */}
+
             <div className="flex min-w-0 flex-col gap-1.5">
               <label className="text-xs font-semibold text-foreground">
                 Transaction Status
@@ -926,10 +802,12 @@ export default function TokenDailyTransactionsPage() {
                 optionValue="value"
                 placeholder="Select status"
                 className="w-full !rounded-xl !border !border-border !bg-background !text-foreground"
+                disabled={loading}
               />
             </div>
 
             {/* Clear */}
+
             <div className="flex items-end">
               <button
                 type="button"
@@ -941,6 +819,8 @@ export default function TokenDailyTransactionsPage() {
             </div>
           </div>
         </section>
+
+        {/* Table Scroll Buttons */}
 
         <div className="mb-2 flex justify-end gap-2">
           <button
@@ -962,6 +842,8 @@ export default function TokenDailyTransactionsPage() {
           </button>
         </div>
 
+        {/* Table */}
+
         <section
           ref={tableScrollRef}
           className="overflow-hidden rounded-2xl border border-border bg-card shadow-sm"
@@ -970,6 +852,7 @@ export default function TokenDailyTransactionsPage() {
             value={filteredRows}
             dataKey="id"
             className="theme-datatable"
+            loading={loading}
             scrollable
             scrollHeight="60vh"
             tableStyle={{
@@ -978,7 +861,9 @@ export default function TokenDailyTransactionsPage() {
             paginator
             rows={50}
             rowsPerPageOptions={[25, 50, 100, 200]}
-            emptyMessage="No transactions found"
+            emptyMessage={
+              loading ? "Loading transactions..." : "No transactions found"
+            }
             rowHover
             size="small"
           >
@@ -991,25 +876,38 @@ export default function TokenDailyTransactionsPage() {
                 bodyClassName: "theme-table-body",
               };
 
+              /* Status */
+
               if (column.field === "status") {
                 return (
                   <Column
                     {...commonProps}
-                    body={(row) => (
-                      <span className={getStatusClass(row?.status)}>
-                        {row?.status ?? "-"}
-                      </span>
-                    )}
+                    body={(row) => {
+                      const status =
+                        row?.status ?? row?.transactionStatus ?? "-";
+
+                      return (
+                        <span className={getStatusClass(status)}>{status}</span>
+                      );
+                    }}
                   />
                 );
               }
+
+              /* Token Status */
 
               if (column.field === "tokenStatus") {
                 return (
                   <Column
                     {...commonProps}
                     body={(row) => {
-                      const status = tokenById.get(row?.tokenId)?.status ?? "-";
+                      const id =
+                        row?.tokenId ??
+                        row?.token_id ??
+                        row?.token?.tokenId ??
+                        row?.token?.id;
+
+                      const status = tokenById.get(String(id))?.status ?? "-";
 
                       const statusClass =
                         status === "Active"
@@ -1021,6 +919,8 @@ export default function TokenDailyTransactionsPage() {
                   />
                 );
               }
+
+              /* Custom value */
 
               if (typeof column.value === "function") {
                 return (
@@ -1034,7 +934,12 @@ export default function TokenDailyTransactionsPage() {
         </section>
       </div>
 
+      {/* ===================================================
+          STYLES
+      =================================================== */}
+
       <style>{`
+
         /* =========================
            DATA TABLE
         ========================= */
@@ -1349,6 +1254,7 @@ export default function TokenDailyTransactionsPage() {
         .theme-calendar-panel .p-datepicker-today > span {
           border-color: hsl(var(--primary)) !important;
         }
+
       `}</style>
     </div>
   );
