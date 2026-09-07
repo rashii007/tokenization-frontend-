@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Button } from "primereact/button";
 import "./LoginPage.css";
 import logo from "../../assets/images/logo.png";
-import RaastLogo from "../../assets/images/Raast-Logo.png";
+import RaastLogo from "../../assets/images/RaastLogo.png";
 import { useNavigate } from "react-router-dom";
 
 export default function LoginPage() {
